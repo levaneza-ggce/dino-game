@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Dino Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        /* --- Basic Setup --- */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f7f7f7;
+            font-family: 'Press Start 2P', cursive;
+            color: #535353;
+            overflow: hidden; /* Prevents scrollbars during gameplay */
+        }
+
+        /* --- Game Container --- */
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            height: 200px;
+            border-bottom: 2px solid #535353;
+            position: relative;
+            overflow: hidden;
+            background-color: #f7f7f7;
+        }
+
+        /* --- Player (Dino) --- */
+        #dino {
+            width: 50px;
+            height: 50px;
+            background-color: #535353;
+            position: absolute;
+            bottom: 0;
+            left: 20px;
+            transition: transform 0.3s ease-out; /* Smooth jump animation */
+        }
+
+        /* --- Jump Animation --- */
+        .jump {
+            animation: jump-animation 0.6s ease-out;
+        }
+
+        @keyframes jump-animation {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-100px);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* --- Obstacles --- */
+        .obstacle {
+            width: 20px;
+            height: 40px;
+            background-color: #535353;
+            position: absolute;
+            bottom: 0;
+            animation: move-obstacle 2s linear infinite;
+        }
+
+        @keyframes move-obstacle {
+            0% {
+                right: -30px; /* Start off-screen */
+            }
+            100% {
+                right: 100%; /* Move completely across the screen */
+            }
+        }
+
+        /* --- Score and Game Over Display --- */
+        #score-container {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+        }
+
+        #game-over {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <div id="dino"></div>
+        <div id="score-container">Score: <span id="score">0</span></div>
+        <div id="game-over">
+            GAME OVER
+            <p style="font-size: 14px; margin-top: 10px;">Press Space to Restart</p>
+        </div>
+    </div>
+
+    <script>
+        // --- Game Elements ---
+        const dino = document.getElementById('dino');
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        const gameOverElement = document.getElementById('game-over');
+
+        // --- Game State ---
+        let score = 0;
+        let isJumping = false;
+        let isGameOver = false;
+        let gameLoopInterval = null;
+        let obstacleGeneratorInterval = null;
+
+        // --- Jump Function ---
+        function jump() {
+            if (!isJumping && !isGameOver) {
+                isJumping = true;
+                dino.classList.add('jump');
+                setTimeout(() => {
+                    dino.classList.remove('jump');
+                    isJumping = false;
+                }, 600); // Corresponds to animation duration
+            }
+        }
+
+        // --- Create Obstacles ---
+        function createObstacle() {
+            if (isGameOver) return;
+            const obstacle = document.createElement('div');
+            obstacle.classList.add('obstacle');
+            // Randomize obstacle animation duration for variety
+            obstacle.style.animationDuration = `${Math.random() * (2.5 - 1.5) + 1.5}s`;
+            gameContainer.appendChild(obstacle);
+
+            // Clean up obstacles that have moved off-screen
+            setTimeout(() => {
+                if (obstacle.parentElement) {
+                    obstacle.parentElement.removeChild(obstacle);
+                }
+            }, 3000); // Longer than the max animation duration
+        }
+
+        // --- Game Loop ---
+        function gameLoop() {
+            if (isGameOver) return;
+
+            // Update score
+            score++;
+            scoreElement.textContent = score;
+
+            // Collision Detection
+            const obstacles = document.querySelectorAll('.obstacle');
+            const dinoRect = dino.getBoundingClientRect();
+
+            obstacles.forEach(obstacle => {
+                const obstacleRect = obstacle.getBoundingClientRect();
+
+                // Check for collision (simple box collision)
+                if (
+                    dinoRect.left < obstacleRect.right &&
+                    dinoRect.right > obstacleRect.left &&
+                    dinoRect.top < obstacleRect.bottom &&
+                    dinoRect.bottom > obstacleRect.top
+                ) {
+                    endGame();
+                }
+            });
+        }
+
+        // --- Start Game ---
+        function startGame() {
+            isGameOver = false;
+            score = 0;
+            scoreElement.textContent = score;
+            gameOverElement.style.display = 'none';
+
+            // Clear any existing obstacles
+            document.querySelectorAll('.obstacle').forEach(o => o.remove());
+
+            // Start game loops
+            gameLoopInterval = setInterval(gameLoop, 100);
+            obstacleGeneratorInterval = setInterval(createObstacle, 2000);
+        }
+
+        // --- End Game ---
+        function endGame() {
+            isGameOver = true;
+            clearInterval(gameLoopInterval);
+            clearInterval(obstacleGeneratorInterval);
+            gameOverElement.style.display = 'block';
+
+            // Stop all obstacle animations
+            document.querySelectorAll('.obstacle').forEach(o => {
+                o.style.animationPlayState = 'paused';
+            });
+        }
+
+        // --- Event Listeners ---
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (isGameOver) {
+                    startGame();
+                } else {
+                    jump();
+                }
+            }
+        });
+
+        // Touch support for mobile
+        gameContainer.addEventListener('touchstart', () => {
+             if (isGameOver) {
+                startGame();
+            } else {
+                jump();
+            }
+        });
+
+
+        // --- Initial Game Start ---
+        startGame();
+    </script>
+</body>
+</html>
