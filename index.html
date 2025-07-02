@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Offline Dino Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Friendly Dino Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         /* --- Basic Setup --- */
@@ -13,32 +13,97 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f7f7f7;
+            background-color: #f0f0f0;
             font-family: 'Press Start 2P', cursive;
             color: #535353;
-            overflow: hidden; /* Prevents scrollbars during gameplay */
+            overflow: hidden; /* Prevents scrollbars */
         }
 
         /* --- Game Container --- */
         #game-container {
             width: 100%;
             max-width: 600px;
-            height: 200px;
-            border-bottom: 2px solid #535353;
+            height: 250px; /* Increased height for better visuals */
+            border: 2px solid #535353;
+            border-radius: 10px;
             position: relative;
             overflow: hidden;
             background-color: #f7f7f7;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+
+        /* --- Scenery --- */
+        .scenery {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 200%;
+            height: 25px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="25"><path d="M0 25 V15 H1200 V25 Z" fill="%23535353" /><path d="M0 15 L10 10 L20 15 L25 12 L35 18 L45 15 H1200 V25 H0 Z" fill="%23888888" /></svg>');
+            background-repeat: repeat-x;
+            animation: move-scenery 4s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .cloud {
+            position: absolute;
+            width: 60px;
+            height: 20px;
+            background-color: #d3d3d3;
+            border-radius: 10px;
+            animation: move-cloud 10s linear infinite;
+            animation-play-state: paused;
+        }
+
+            .cloud::before, .cloud::after {
+                content: '';
+                position: absolute;
+                background-color: #d3d3d3;
+                border-radius: 50%;
+            }
+
+            .cloud::before {
+                width: 25px;
+                height: 25px;
+                top: -12px;
+                left: 10px;
+            }
+
+            .cloud::after {
+                width: 35px;
+                height: 35px;
+                top: -15px;
+                right: 5px;
+            }
+
+        @keyframes move-scenery {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-50%);
+            }
+        }
+
+        @keyframes move-cloud {
+            from {
+                right: -100px;
+            }
+
+            to {
+                right: 110%;
+            }
         }
 
         /* --- Player (Dino) --- */
         #dino {
             width: 50px;
-            height: 50px;
-            background-color: #535353;
+            height: 55px;
             position: absolute;
-            bottom: 0;
+            bottom: 20px; /* Sits on the scenery line */
             left: 20px;
-            transition: transform 0.3s ease-out; /* Smooth jump animation */
+            transition: transform 0.3s ease-out;
         }
 
         /* --- Jump Animation --- */
@@ -50,9 +115,11 @@
             0% {
                 transform: translateY(0);
             }
+
             50% {
-                transform: translateY(-100px);
+                transform: translateY(-120px);
             }
+
             100% {
                 transform: translateY(0);
             }
@@ -60,20 +127,19 @@
 
         /* --- Obstacles --- */
         .obstacle {
-            width: 20px;
-            height: 40px;
-            background-color: #535353;
             position: absolute;
-            bottom: 0;
+            bottom: 20px;
             animation: move-obstacle 2s linear infinite;
+            animation-play-state: paused;
         }
 
         @keyframes move-obstacle {
             0% {
-                right: -30px; /* Start off-screen */
+                right: -50px;
             }
+
             100% {
-                right: 100%; /* Move completely across the screen */
+                right: 110%;
             }
         }
 
@@ -83,27 +149,42 @@
             top: 10px;
             right: 10px;
             font-size: 18px;
+            z-index: 10;
         }
 
-        #game-over {
+        #game-message {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             font-size: 24px;
             text-align: center;
-            display: none; /* Hidden by default */
+            z-index: 10;
         }
+
+            #game-message p {
+                font-size: 14px;
+                margin-top: 10px;
+                color: #888;
+            }
     </style>
 </head>
 <body>
 
     <div id="game-container">
-        <div id="dino"></div>
+        <div id="scenery" class="scenery"></div>
+        <div id="dino">
+            <!-- SVG Dino -->
+            <svg viewBox="0 0 50 55" fill="#535353" xmlns="http://www.w3.org/2000/svg">
+                <path d="M45.6,43.6H41.2V29.3c0-1.5-1.2-2.7-2.7-2.7H21.7c-1.5,0-2.7,1.2-2.7,2.7v7.1h-4V19.6c0-1.5-1.2-2.7-2.7-2.7H9.4c-1.5,0-2.7,1.2-2.7,2.7v21.3H4.4c-1.5,0-2.7,1.2-2.7,2.7v6.9h46.6v-6.9C48.3,44.8,47.1,43.6,45.6,43.6z" />
+                <path d="M21.7,24.1h11.1c1.5,0,2.7-1.2,2.7-2.7V4.7c0-1.5-1.2-2.7-2.7-2.7H21.7c-1.5,0-2.7,1.2-2.7,2.7v16.7C19,22.9,20.2,24.1,21.7,24.1z" />
+                <rect x="27.4" y="9.4" width="2.7" height="2.7" />
+            </svg>
+        </div>
         <div id="score-container">Score: <span id="score">0</span></div>
-        <div id="game-over">
-            GAME OVER
-            <p style="font-size: 14px; margin-top: 10px;">Press Space to Restart</p>
+        <div id="game-message">
+            <span id="message-text">Press Space to Start</span>
+            <p id="final-score"></p>
         </div>
     </div>
 
@@ -112,18 +193,22 @@
         const dino = document.getElementById('dino');
         const gameContainer = document.getElementById('game-container');
         const scoreElement = document.getElementById('score');
-        const gameOverElement = document.getElementById('game-over');
+        const gameMessageElement = document.getElementById('game-message');
+        const messageTextElement = document.getElementById('message-text');
+        const finalScoreElement = document.getElementById('final-score');
+        const scenery = document.getElementById('scenery');
 
         // --- Game State ---
         let score = 0;
         let isJumping = false;
-        let isGameOver = false;
+        let gameState = 'ready'; // 'ready', 'playing', 'over'
         let gameLoopInterval = null;
         let obstacleGeneratorInterval = null;
+        let cloudGeneratorInterval = null;
 
         // --- Jump Function ---
         function jump() {
-            if (!isJumping && !isGameOver) {
+            if (!isJumping && gameState === 'playing') {
                 isJumping = true;
                 dino.classList.add('jump');
                 setTimeout(() => {
@@ -135,37 +220,41 @@
 
         // --- Create Obstacles ---
         function createObstacle() {
-            if (isGameOver) return;
+            if (gameState !== 'playing') return;
             const obstacle = document.createElement('div');
             obstacle.classList.add('obstacle');
-            // Randomize obstacle animation duration for variety
+            // SVG Cactus
+            obstacle.innerHTML = `<svg viewBox="0 0 30 50" fill="#535353" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 49.8H7.5c-1.5 0-2.7-1.2-2.7-2.7V12.5c0-1.5 1.2-2.7 2.7-2.7h15c1.5 0 2.7 1.2 2.7 2.7v34.6c0 1.5-1.2 2.7-2.7 2.7z"/><path d="M25.2 27.5h-2.7V17.9c0-1.5-1.2-2.7-2.7-2.7h-4.6c-1.5 0-2.7 1.2-2.7 2.7v12.3H4.8c-1.5 0-2.7 1.2-2.7 2.7v4.6c0 1.5 1.2 2.7 2.7 2.7h20.4c1.5 0 2.7-1.2 2.7-2.7v-4.6c0-1.5-1.2-2.7-2.7-2.7z"/></svg>`;
             obstacle.style.animationDuration = `${Math.random() * (2.5 - 1.5) + 1.5}s`;
             gameContainer.appendChild(obstacle);
 
-            // Clean up obstacles that have moved off-screen
-            setTimeout(() => {
-                if (obstacle.parentElement) {
-                    obstacle.parentElement.removeChild(obstacle);
-                }
-            }, 3000); // Longer than the max animation duration
+            setTimeout(() => obstacle.remove(), 3000);
         }
 
-        // --- Game Loop ---
-        function gameLoop() {
-            if (isGameOver) return;
+        // --- Create Clouds ---
+        function createCloud() {
+            if (gameState !== 'playing') return;
+            const cloud = document.createElement('div');
+            cloud.classList.add('cloud');
+            cloud.style.top = `${Math.random() * 40 + 10}%`;
+            cloud.style.animationDuration = `${Math.random() * 10 + 8}s`;
+            gameContainer.appendChild(cloud);
 
-            // Update score
+            setTimeout(() => cloud.remove(), 18000);
+        }
+
+        // --- Game Loop for collision detection and scoring ---
+        function gameLoop() {
+            if (gameState !== 'playing') return;
+
             score++;
             scoreElement.textContent = score;
 
-            // Collision Detection
             const obstacles = document.querySelectorAll('.obstacle');
             const dinoRect = dino.getBoundingClientRect();
 
-            obstacles.forEach(obstacle => {
+            for (const obstacle of obstacles) {
                 const obstacleRect = obstacle.getBoundingClientRect();
-
-                // Check for collision (simple box collision)
                 if (
                     dinoRect.left < obstacleRect.right &&
                     dinoRect.right > obstacleRect.left &&
@@ -173,61 +262,73 @@
                     dinoRect.bottom > obstacleRect.top
                 ) {
                     endGame();
+                    return;
                 }
-            });
+            }
         }
 
         // --- Start Game ---
         function startGame() {
-            isGameOver = false;
+            gameState = 'playing';
             score = 0;
             scoreElement.textContent = score;
-            gameOverElement.style.display = 'none';
+            gameMessageElement.style.display = 'none';
 
-            // Clear any existing obstacles
-            document.querySelectorAll('.obstacle').forEach(o => o.remove());
+            // Clear any existing dynamic elements
+            document.querySelectorAll('.obstacle, .cloud').forEach(el => el.remove());
 
-            // Start game loops
-            gameLoopInterval = setInterval(gameLoop, 100);
-            obstacleGeneratorInterval = setInterval(createObstacle, 2000);
+            // Start animations
+            document.querySelectorAll('.scenery, .obstacle, .cloud').forEach(el => {
+                el.style.animationPlayState = 'running';
+            });
+            scenery.style.animationPlayState = 'running';
+
+            // Start game logic loops
+            gameLoopInterval = setInterval(gameLoop, 50);
+            obstacleGeneratorInterval = setInterval(createObstacle, 2200);
+            cloudGeneratorInterval = setInterval(createCloud, 5000);
+            createCloud(); // Start with one cloud
         }
 
         // --- End Game ---
         function endGame() {
-            isGameOver = true;
+            gameState = 'over';
             clearInterval(gameLoopInterval);
             clearInterval(obstacleGeneratorInterval);
-            gameOverElement.style.display = 'block';
+            clearInterval(cloudGeneratorInterval);
 
-            // Stop all obstacle animations
-            document.querySelectorAll('.obstacle').forEach(o => {
-                o.style.animationPlayState = 'paused';
+            messageTextElement.textContent = 'GAME OVER';
+            finalScoreElement.textContent = `Your Score: ${score}`;
+            gameMessageElement.style.display = 'block';
+
+            // Stop all animations
+            document.querySelectorAll('.scenery, .obstacle, .cloud').forEach(el => {
+                el.style.animationPlayState = 'paused';
             });
+        }
+
+        // --- Handle Input ---
+        function handleInput() {
+            if (gameState === 'ready' || gameState === 'over') {
+                startGame();
+            } else if (gameState === 'playing') {
+                jump();
+            }
         }
 
         // --- Event Listeners ---
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space') {
-                if (isGameOver) {
-                    startGame();
-                } else {
-                    jump();
-                }
+                e.preventDefault(); // Prevent page from scrolling
+                handleInput();
             }
         });
 
-        // Touch support for mobile
-        gameContainer.addEventListener('touchstart', () => {
-             if (isGameOver) {
-                startGame();
-            } else {
-                jump();
-            }
+        gameContainer.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent page from scrolling/zooming
+            handleInput();
         });
 
-
-        // --- Initial Game Start ---
-        startGame();
     </script>
 </body>
 </html>
