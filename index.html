@@ -129,6 +129,7 @@
             border: 2px solid;
             box-shadow: 0 3px 0;
             transition: all 0.1s ease-in-out;
+            cursor: pointer;
         }
 
             .nav-btn:active {
@@ -156,6 +157,16 @@
                 background-color: #3fe382;
             }
 
+        .logout-btn {
+            background-color: #e74c3c;
+            border-color: #c0392b;
+            box-shadow: 0 3px 0 #c0392b;
+        }
+
+            .logout-btn:hover {
+                background-color: #ff5e4d;
+            }
+
         @media (max-width: 768px) {
             .game-selection {
                 grid-template-columns: repeat(2, 1fr);
@@ -181,9 +192,8 @@
     </style>
 </head>
 <body>
-    <div class="top-right-nav">
-        <a href="login.html" class="nav-btn login-btn">Login</a>
-        <a href="registration.html" class="nav-btn register-btn">Register</a>
+    <div class="top-right-nav" id="nav-container">
+        <!-- This will be populated by JavaScript -->
     </div>
 
     <h1>ARCADE</h1>
@@ -196,5 +206,40 @@
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
     </div>
+
+    <script>
+        const navContainer = document.getElementById('nav-container');
+
+        async function checkLoginStatus() {
+            try {
+                const response = await fetch(window.location.origin + '/api/session-status');
+                const data = await response.json();
+
+                if (data.loggedIn) {
+                    navContainer.innerHTML = `<button id="logout-btn" class="nav-btn logout-btn">Logout</button>`;
+                    document.getElementById('logout-btn').addEventListener('click', logout);
+                } else {
+                    navContainer.innerHTML = `
+                        <a href="login.html" class="nav-btn login-btn">Login</a>
+                        <a href="registration.html" class="nav-btn register-btn">Register</a>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error checking session status:', error);
+            }
+        }
+
+        async function logout() {
+            try {
+                await fetch(window.location.origin + '/logout');
+                window.location.reload(); // Reload the page to update the nav
+            } catch (error) {
+                console.error('Error during logout:', error);
+            }
+        }
+
+        // Check login status when the page loads
+        document.addEventListener('DOMContentLoaded', checkLoginStatus);
+    </script>
 </body>
 </html>
