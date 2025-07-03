@@ -62,7 +62,6 @@
             }
         }
 
-        /* New animation for the buttons */
         @keyframes pulse {
             0% {
                 transform: scale(1);
@@ -96,7 +95,6 @@
             box-shadow: 0 5px 0 #c0392b;
             transition: all 0.1s ease-in-out;
             position: relative;
-            /* Styles for a square, centered button */
             aspect-ratio: 1 / 1;
             display: flex;
             justify-content: center;
@@ -105,19 +103,18 @@
 
             .game-link:hover {
                 background-color: #ff5e4d;
-                animation: pulse 0.8s infinite; /* Apply the animation on hover */
+                animation: pulse 0.8s infinite;
             }
 
             .game-link:active {
                 box-shadow: 0 2px 0 #c0392b;
                 transform: translateY(3px);
-                animation: none; /* Stop the pulse animation on click */
+                animation: none;
             }
 
-        /* Responsive layout for smaller screens */
         @media (max-width: 768px) {
             .game-selection {
-                grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller screens */
+                grid-template-columns: repeat(2, 1fr);
                 gap: 20px;
                 width: 80%;
             }
@@ -129,7 +126,7 @@
 
         @media (max-width: 480px) {
             .game-selection {
-                grid-template-columns: 1fr; /* 1 column on very small screens */
+                grid-template-columns: 1fr;
             }
         }
     </style>
