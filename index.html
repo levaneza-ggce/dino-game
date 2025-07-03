@@ -112,6 +112,22 @@
                 animation: none;
             }
 
+        /* Style for the register button */
+        .register-link {
+            background-color: #3498db; /* Blue color */
+            border-color: #2980b9;
+            box-shadow: 0 5px 0 #2980b9;
+        }
+
+            .register-link:hover {
+                background-color: #4aa3df;
+            }
+
+            .register-link:active {
+                box-shadow: 0 2px 0 #2980b9;
+            }
+
+
         @media (max-width: 768px) {
             .game-selection {
                 grid-template-columns: repeat(2, 1fr);
@@ -141,6 +157,7 @@
         <a href="doom.html" class="game-link">Pixel Doom</a>
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
+        <a href="registration.html" class="game-link register-link">Register</a>
     </div>
 </body>
 </html>
