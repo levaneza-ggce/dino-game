@@ -16,6 +16,7 @@
             background-color: #2c3e50;
             font-family: 'Press Start 2P', cursive;
             color: #ecf0f1;
+            position: relative; /* Needed for positioning the button */
         }
 
         h1 {
@@ -28,9 +29,31 @@
             background-color: #34495e;
             border: 3px solid #ecf0f1;
         }
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ecf0f1;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #ecf0f1;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(0,0,0,0.5);
+            }
     </style>
 </head>
 <body>
+    <!-- Back Button Link -->
+    <a href="index.html" class="back-button">← Menu</a>
+
     <h1>SNAKE</h1>
     <canvas id="gameCanvas" width="400" height="400"></canvas>
 
@@ -129,7 +152,6 @@
 
             update();
             draw();
-            // Increased timeout for slower speed
             setTimeout(gameLoop, 150);
         }
 
