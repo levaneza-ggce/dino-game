@@ -18,6 +18,7 @@
             font-family: 'Press Start 2P', cursive;
             overflow: hidden;
             text-align: center;
+            position: relative; /* Added for positioning context */
         }
 
             /* Animated Background Grid */
@@ -112,19 +113,29 @@
                 animation: none;
             }
 
-        /* Style for the register button */
-        .register-link {
-            background-color: #3498db; /* Blue color */
-            border-color: #2980b9;
-            box-shadow: 0 5px 0 #2980b9;
+        /* --- New styles for the top-right button --- */
+        .top-right-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #3498db;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            border: 2px solid #2980b9;
+            box-shadow: 0 3px 0 #2980b9;
+            transition: all 0.1s ease-in-out;
         }
 
-            .register-link:hover {
+            .top-right-btn:hover {
                 background-color: #4aa3df;
             }
 
-            .register-link:active {
-                box-shadow: 0 2px 0 #2980b9;
+            .top-right-btn:active {
+                box-shadow: 0 1px 0 #2980b9;
+                transform: translateY(2px);
             }
 
 
@@ -138,6 +149,11 @@
             h1 {
                 font-size: 36px;
             }
+
+            .top-right-btn {
+                font-size: 14px;
+                padding: 8px 15px;
+            }
         }
 
         @media (max-width: 480px) {
@@ -148,6 +164,9 @@
     </style>
 </head>
 <body>
+    <!-- Register button is now here -->
+    <a href="registration.html" class="top-right-btn">Register</a>
+
     <h1>ARCADE</h1>
     <div class="game-selection">
         <a href="dino.html" class="game-link">Dino Game</a>
@@ -157,7 +176,7 @@
         <a href="doom.html" class="game-link">Pixel Doom</a>
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
-        <a href="registration.html" class="game-link register-link">Register</a>
+        <!-- The old register button has been removed from the grid -->
     </div>
 </body>
 </html>
