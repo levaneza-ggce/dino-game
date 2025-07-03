@@ -16,6 +16,7 @@
             background-color: #1a1a1a;
             font-family: 'Press+Start+2P', cursive;
             color: #fff;
+            position: relative; /* For button positioning */
         }
 
         h1 {
@@ -30,201 +31,281 @@
             border: 3px solid #fff;
             cursor: crosshair;
         }
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(255,255,255,0.2);
+            }
     </style>
 </head>
 <body>
+    <a href="index.html" class="back-button">← Menu</a>
+
     <h1>Pixel Doom</h1>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        // --- Game Objects ---
-        const player = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
-            radius: 15,
-            speed: 3,
-            color: '#3498db',
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
-            }
-        };
-
-        class Projectile {
-            constructor(x, y, dx, dy) {
-                this.x = x;
-                this.y = y;
-                this.dx = dx;
-                this.dy = dy;
-                this.radius = 5;
-                this.color = '#f1c40f';
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
-            }
-            update() {
-                this.x += this.dx;
-                this.y += this.dy;
-            }
-        }
-
-        class Enemy {
-            constructor() {
-                this.radius = Math.random() * 10 + 15;
-                const side = Math.floor(Math.random() * 4);
-                if (side === 0) { // top
-                    this.x = Math.random() * canvas.width;
-                    this.y = -this.radius;
-                } else if (side === 1) { // right
-                    this.x = canvas.width + this.radius;
-                    this.y = Math.random() * canvas.height;
-                } else if (side === 2) { // bottom
-                    this.x = Math.random() * canvas.width;
-                    this.y = canvas.height + this.radius;
-                } else { // left
-                    this.x = -this.radius;
-                    this.y = Math.random() * canvas.height;
-                }
-                this.color = '#c0392b';
-                this.speed = Math.random() * 1 + 0.5;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fillStyle = this.color;
-                ctx.fill();
-                ctx.closePath();
-            }
-            update() {
-                const angle = Math.atan2(player.y - this.y, player.x - this.x);
-                this.x += Math.cos(angle) * this.speed;
-                this.y += Math.sin(angle) * this.speed;
-            }
-        }
-
-        // --- Game State ---
-        let projectiles = [];
-        let enemies = [];
-        let score = 0;
-        let isGameOver = false;
-        let keys = {};
-        let enemyInterval;
-
-        // --- Event Listeners ---
+        const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 15, speed: 3, color: '#3498db', draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } };
+        class Projectile { constructor(x, y, dx, dy) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.radius = 5; this.color = '#f1c40f'; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { this.x += this.dx; this.y += this.dy; } }
+        class Enemy { constructor() { this.radius = Math.random() * 10 + 15; const side = Math.floor(Math.random() * 4); if (side === 0) { this.x = Math.random() * canvas.width; this.y = -this.radius; } else if (side === 1) { this.x = canvas.width + this.radius; this.y = Math.random() * canvas.height; } else if (side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + this.radius; } else { this.x = -this.radius; this.y = Math.random() * canvas.height; } this.color = '#c0392b'; this.speed = Math.random() * 1 + 0.5; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { const angle = Math.atan2(player.y - this.y, player.x - this.x); this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed; } }
+        let projectiles = [], enemies = [], score = 0, isGameOver = false, keys = {}, enemyInterval;
         window.addEventListener('keydown', (e) => keys[e.code] = true);
         window.addEventListener('keyup', (e) => keys[e.code] = false);
-        canvas.addEventListener('click', (e) => {
-            if (isGameOver) return;
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left;
-            const mouseY = e.clientY - rect.top;
-            const angle = Math.atan2(mouseY - player.y, mouseX - player.x);
-            const speed = 7;
-            projectiles.push(new Projectile(player.x, player.y, Math.cos(angle) * speed, Math.sin(angle) * speed));
-        });
-
-        // --- Game Logic ---
-        function spawnEnemies() {
-            enemyInterval = setInterval(() => {
-                if (!isGameOver) {
-                    enemies.push(new Enemy());
-                }
-            }, 1500);
+        canvas.addEventListener('click', (e) => { if (isGameOver) return; const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top; const angle = Math.atan2(mouseY - player.y, mouseX - player.x); const speed = 7; projectiles.push(new Projectile(player.x, player.y, Math.cos(angle) * speed, Math.sin(angle) * speed)); });
+        function spawnEnemies() { enemyInterval = setInterval(() => { if (!isGameOver) { enemies.push(new Enemy()); } }, 1500); }
+        function updatePlayerPosition() { if (keys['KeyW'] && player.y - player.radius > 0) player.y -= player.speed; if (keys['KeyS'] && player.y + player.radius < canvas.height) player.y += player.speed; if (keys['KeyA'] && player.x - player.radius > 0) player.x -= player.speed; if (keys['KeyD'] && player.x + player.radius < canvas.width) player.x += player.speed; }
+        function animate() { if (isGameOver) { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = "48px 'Press Start 2P'"; ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40); ctx.font = "24px 'Press Start 2P'"; ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20); ctx.font = "16px 'Press Start 2P'"; ctx.fillText('Click to Restart', canvas.width / 2, canvas.height / 2 + 70); canvas.addEventListener('click', startGame, { once: true }); return; } requestAnimationFrame(animate); ctx.clearRect(0, 0, canvas.width, canvas.height); updatePlayerPosition(); player.draw(); projectiles.forEach((p, pIndex) => { p.update(); p.draw(); if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) { projectiles.splice(pIndex, 1); } }); enemies.forEach((enemy, eIndex) => { enemy.update(); enemy.draw(); const distPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y); if (distPlayer - enemy.radius - player.radius < 1) { isGameOver = true; clearInterval(enemyInterval); } projectiles.forEach((p, pIndex) => { const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y); if (dist - enemy.radius - p.radius < 1) { score += 100; setTimeout(() => { enemies.splice(eIndex, 1); projectiles.splice(pIndex, 1); }, 0); } }); }); ctx.fillStyle = '#fff'; ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = 'left'; ctx.fillText(`Score: ${score}`, 10, 30); }
+        function startGame() { projectiles = []; enemies = []; score = 0; isGameOver = false; player.x = canvas.width / 2; player.y = canvas.height / 2; clearInterval(enemyInterval); spawnEnemies(); animate(); }
+        startGame();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Doom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            font-family: 'Press+Start+2P', cursive;
+            color: #fff;
+            position: relative; /* For button positioning */
         }
 
-        function updatePlayerPosition() {
-            if (keys['KeyW'] && player.y - player.radius > 0) player.y -= player.speed;
-            if (keys['KeyS'] && player.y + player.radius < canvas.height) player.y += player.speed;
-            if (keys['KeyA'] && player.x - player.radius > 0) player.x -= player.speed;
-            if (keys['KeyD'] && player.x + player.radius < canvas.width) player.x += player.speed;
+        h1 {
+            font-size: 32px;
+            color: #e74c3c;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
         }
 
-        function animate() {
-            if (isGameOver) {
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#fff';
-                ctx.textAlign = 'center';
-                ctx.font = "48px 'Press Start 2P'";
-                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40);
-                ctx.font = "24px 'Press Start 2P'";
-                ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
-                ctx.font = "16px 'Press Start 2P'";
-                ctx.fillText('Click to Restart', canvas.width / 2, canvas.height / 2 + 70);
-                canvas.addEventListener('click', startGame, { once: true });
-                return;
+        canvas {
+            background-color: #3d3d3d;
+            border: 3px solid #fff;
+            cursor: crosshair;
+        }
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(255,255,255,0.2);
             }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
 
-            requestAnimationFrame(animate);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+    <h1>Pixel Doom</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
 
-            updatePlayerPosition();
-            player.draw();
-
-            projectiles.forEach((p, pIndex) => {
-                p.update();
-                p.draw();
-                // Remove off-screen projectiles
-                if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) {
-                    projectiles.splice(pIndex, 1);
-                }
-            });
-
-            enemies.forEach((enemy, eIndex) => {
-                enemy.update();
-                enemy.draw();
-
-                // Collision: player and enemy
-                const distPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y);
-                if (distPlayer - enemy.radius - player.radius < 1) {
-                    isGameOver = true;
-                    clearInterval(enemyInterval);
-                }
-
-                // Collision: projectile and enemy
-                projectiles.forEach((p, pIndex) => {
-                    const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
-                    if (dist - enemy.radius - p.radius < 1) {
-                        // Increase score
-                        score += 100;
-                        // Remove enemy and projectile
-                        setTimeout(() => { // Use timeout to avoid array modification issues
-                            enemies.splice(eIndex, 1);
-                            projectiles.splice(pIndex, 1);
-                        }, 0);
-                    }
-                });
-            });
-
-            // Draw Score
-            ctx.fillStyle = '#fff';
-            ctx.font = "20px 'Press Start 2P'";
-            ctx.textAlign = 'left';
-            ctx.fillText(`Score: ${score}`, 10, 30);
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 15, speed: 3, color: '#3498db', draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } };
+        class Projectile { constructor(x, y, dx, dy) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.radius = 5; this.color = '#f1c40f'; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { this.x += this.dx; this.y += this.dy; } }
+        class Enemy { constructor() { this.radius = Math.random() * 10 + 15; const side = Math.floor(Math.random() * 4); if (side === 0) { this.x = Math.random() * canvas.width; this.y = -this.radius; } else if (side === 1) { this.x = canvas.width + this.radius; this.y = Math.random() * canvas.height; } else if (side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + this.radius; } else { this.x = -this.radius; this.y = Math.random() * canvas.height; } this.color = '#c0392b'; this.speed = Math.random() * 1 + 0.5; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { const angle = Math.atan2(player.y - this.y, player.x - this.x); this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed; } }
+        let projectiles = [], enemies = [], score = 0, isGameOver = false, keys = {}, enemyInterval;
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+        canvas.addEventListener('click', (e) => { if (isGameOver) return; const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top; const angle = Math.atan2(mouseY - player.y, mouseX - player.x); const speed = 7; projectiles.push(new Projectile(player.x, player.y, Math.cos(angle) * speed, Math.sin(angle) * speed)); });
+        function spawnEnemies() { enemyInterval = setInterval(() => { if (!isGameOver) { enemies.push(new Enemy()); } }, 1500); }
+        function updatePlayerPosition() { if (keys['KeyW'] && player.y - player.radius > 0) player.y -= player.speed; if (keys['KeyS'] && player.y + player.radius < canvas.height) player.y += player.speed; if (keys['KeyA'] && player.x - player.radius > 0) player.x -= player.speed; if (keys['KeyD'] && player.x + player.radius < canvas.width) player.x += player.speed; }
+        function animate() { if (isGameOver) { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = "48px 'Press Start 2P'"; ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40); ctx.font = "24px 'Press Start 2P'"; ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20); ctx.font = "16px 'Press Start 2P'"; ctx.fillText('Click to Restart', canvas.width / 2, canvas.height / 2 + 70); canvas.addEventListener('click', startGame, { once: true }); return; } requestAnimationFrame(animate); ctx.clearRect(0, 0, canvas.width, canvas.height); updatePlayerPosition(); player.draw(); projectiles.forEach((p, pIndex) => { p.update(); p.draw(); if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) { projectiles.splice(pIndex, 1); } }); enemies.forEach((enemy, eIndex) => { enemy.update(); enemy.draw(); const distPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y); if (distPlayer - enemy.radius - player.radius < 1) { isGameOver = true; clearInterval(enemyInterval); } projectiles.forEach((p, pIndex) => { const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y); if (dist - enemy.radius - p.radius < 1) { score += 100; setTimeout(() => { enemies.splice(eIndex, 1); projectiles.splice(pIndex, 1); }, 0); } }); }); ctx.fillStyle = '#fff'; ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = 'left'; ctx.fillText(`Score: ${score}`, 10, 30); }
+        function startGame() { projectiles = []; enemies = []; score = 0; isGameOver = false; player.x = canvas.width / 2; player.y = canvas.height / 2; clearInterval(enemyInterval); spawnEnemies(); animate(); }
+        startGame();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Doom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            font-family: 'Press+Start+2P', cursive;
+            color: #fff;
+            position: relative; /* For button positioning */
         }
 
-        function startGame() {
-            projectiles = [];
-            enemies = [];
-            score = 0;
-            isGameOver = false;
-            player.x = canvas.width / 2;
-            player.y = canvas.height / 2;
-            clearInterval(enemyInterval);
-            spawnEnemies();
-            animate();
+        h1 {
+            font-size: 32px;
+            color: #e74c3c;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
         }
 
+        canvas {
+            background-color: #3d3d3d;
+            border: 3px solid #fff;
+            cursor: crosshair;
+        }
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(255,255,255,0.2);
+            }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
+
+    <h1>Pixel Doom</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 15, speed: 3, color: '#3498db', draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } };
+        class Projectile { constructor(x, y, dx, dy) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.radius = 5; this.color = '#f1c40f'; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { this.x += this.dx; this.y += this.dy; } }
+        class Enemy { constructor() { this.radius = Math.random() * 10 + 15; const side = Math.floor(Math.random() * 4); if (side === 0) { this.x = Math.random() * canvas.width; this.y = -this.radius; } else if (side === 1) { this.x = canvas.width + this.radius; this.y = Math.random() * canvas.height; } else if (side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + this.radius; } else { this.x = -this.radius; this.y = Math.random() * canvas.height; } this.color = '#c0392b'; this.speed = Math.random() * 1 + 0.5; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { const angle = Math.atan2(player.y - this.y, player.x - this.x); this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed; } }
+        let projectiles = [], enemies = [], score = 0, isGameOver = false, keys = {}, enemyInterval;
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+        canvas.addEventListener('click', (e) => { if (isGameOver) return; const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top; const angle = Math.atan2(mouseY - player.y, mouseX - player.x); const speed = 7; projectiles.push(new Projectile(player.x, player.y, Math.cos(angle) * speed, Math.sin(angle) * speed)); });
+        function spawnEnemies() { enemyInterval = setInterval(() => { if (!isGameOver) { enemies.push(new Enemy()); } }, 1500); }
+        function updatePlayerPosition() { if (keys['KeyW'] && player.y - player.radius > 0) player.y -= player.speed; if (keys['KeyS'] && player.y + player.radius < canvas.height) player.y += player.speed; if (keys['KeyA'] && player.x - player.radius > 0) player.x -= player.speed; if (keys['KeyD'] && player.x + player.radius < canvas.width) player.x += player.speed; }
+        function animate() { if (isGameOver) { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = "48px 'Press Start 2P'"; ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40); ctx.font = "24px 'Press Start 2P'"; ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20); ctx.font = "16px 'Press Start 2P'"; ctx.fillText('Click to Restart', canvas.width / 2, canvas.height / 2 + 70); canvas.addEventListener('click', startGame, { once: true }); return; } requestAnimationFrame(animate); ctx.clearRect(0, 0, canvas.width, canvas.height); updatePlayerPosition(); player.draw(); projectiles.forEach((p, pIndex) => { p.update(); p.draw(); if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) { projectiles.splice(pIndex, 1); } }); enemies.forEach((enemy, eIndex) => { enemy.update(); enemy.draw(); const distPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y); if (distPlayer - enemy.radius - player.radius < 1) { isGameOver = true; clearInterval(enemyInterval); } projectiles.forEach((p, pIndex) => { const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y); if (dist - enemy.radius - p.radius < 1) { score += 100; setTimeout(() => { enemies.splice(eIndex, 1); projectiles.splice(pIndex, 1); }, 0); } }); }); ctx.fillStyle = '#fff'; ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = 'left'; ctx.fillText(`Score: ${score}`, 10, 30); }
+        function startGame() { projectiles = []; enemies = []; score = 0; isGameOver = false; player.x = canvas.width / 2; player.y = canvas.height / 2; clearInterval(enemyInterval); spawnEnemies(); animate(); }
+        startGame();
+    </script>
+</body>
+</html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Doom</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            font-family: 'Press+Start+2P', cursive;
+            color: #fff;
+            position: relative; /* For button positioning */
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #e74c3c;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            background-color: #3d3d3d;
+            border: 3px solid #fff;
+            cursor: crosshair;
+        }
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(255,255,255,0.2);
+            }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
+
+    <h1>Pixel Doom</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const player = { x: canvas.width / 2, y: canvas.height / 2, radius: 15, speed: 3, color: '#3498db', draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } };
+        class Projectile { constructor(x, y, dx, dy) { this.x = x; this.y = y; this.dx = dx; this.dy = dy; this.radius = 5; this.color = '#f1c40f'; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { this.x += this.dx; this.y += this.dy; } }
+        class Enemy { constructor() { this.radius = Math.random() * 10 + 15; const side = Math.floor(Math.random() * 4); if (side === 0) { this.x = Math.random() * canvas.width; this.y = -this.radius; } else if (side === 1) { this.x = canvas.width + this.radius; this.y = Math.random() * canvas.height; } else if (side === 2) { this.x = Math.random() * canvas.width; this.y = canvas.height + this.radius; } else { this.x = -this.radius; this.y = Math.random() * canvas.height; } this.color = '#c0392b'; this.speed = Math.random() * 1 + 0.5; } draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fillStyle = this.color; ctx.fill(); ctx.closePath(); } update() { const angle = Math.atan2(player.y - this.y, player.x - this.x); this.x += Math.cos(angle) * this.speed; this.y += Math.sin(angle) * this.speed; } }
+        let projectiles = [], enemies = [], score = 0, isGameOver = false, keys = {}, enemyInterval;
+        window.addEventListener('keydown', (e) => keys[e.code] = true);
+        window.addEventListener('keyup', (e) => keys[e.code] = false);
+        canvas.addEventListener('click', (e) => { if (isGameOver) return; const rect = canvas.getBoundingClientRect(); const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top; const angle = Math.atan2(mouseY - player.y, mouseX - player.x); const speed = 7; projectiles.push(new Projectile(player.x, player.y, Math.cos(angle) * speed, Math.sin(angle) * speed)); });
+        function spawnEnemies() { enemyInterval = setInterval(() => { if (!isGameOver) { enemies.push(new Enemy()); } }, 1500); }
+        function updatePlayerPosition() { if (keys['KeyW'] && player.y - player.radius > 0) player.y -= player.speed; if (keys['KeyS'] && player.y + player.radius < canvas.height) player.y += player.speed; if (keys['KeyA'] && player.x - player.radius > 0) player.x -= player.speed; if (keys['KeyD'] && player.x + player.radius < canvas.width) player.x += player.speed; }
+        function animate() { if (isGameOver) { ctx.fillStyle = 'rgba(0, 0, 0, 0.7)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = "48px 'Press Start 2P'"; ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 40); ctx.font = "24px 'Press Start 2P'"; ctx.fillText(`Score: ${score}`, canvas.width / 2, canvas.height / 2 + 20); ctx.font = "16px 'Press Start 2P'"; ctx.fillText('Click to Restart', canvas.width / 2, canvas.height / 2 + 70); canvas.addEventListener('click', startGame, { once: true }); return; } requestAnimationFrame(animate); ctx.clearRect(0, 0, canvas.width, canvas.height); updatePlayerPosition(); player.draw(); projectiles.forEach((p, pIndex) => { p.update(); p.draw(); if (p.x + p.radius < 0 || p.x - p.radius > canvas.width || p.y + p.radius < 0 || p.y - p.radius > canvas.height) { projectiles.splice(pIndex, 1); } }); enemies.forEach((enemy, eIndex) => { enemy.update(); enemy.draw(); const distPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y); if (distPlayer - enemy.radius - player.radius < 1) { isGameOver = true; clearInterval(enemyInterval); } projectiles.forEach((p, pIndex) => { const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y); if (dist - enemy.radius - p.radius < 1) { score += 100; setTimeout(() => { enemies.splice(eIndex, 1); projectiles.splice(pIndex, 1); }, 0); } }); }); ctx.fillStyle = '#fff'; ctx.font = "20px 'Press Start 2P'"; ctx.textAlign = 'left'; ctx.fillText(`Score: ${score}`, 10, 30); }
+        function startGame() { projectiles = []; enemies = []; score = 0; isGameOver = false; player.x = canvas.width / 2; player.y = canvas.height / 2; clearInterval(enemyInterval); spawnEnemies(); animate(); }
         startGame();
     </script>
 </body>
