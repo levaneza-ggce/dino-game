@@ -18,10 +18,9 @@
             font-family: 'Press Start 2P', cursive;
             overflow: hidden;
             text-align: center;
-            position: relative; /* Added for positioning context */
+            position: relative;
         }
 
-            /* Animated Background Grid */
             body::before {
                 content: '';
                 position: absolute;
@@ -113,31 +112,49 @@
                 animation: none;
             }
 
-        /* --- New styles for the top-right button --- */
-        .top-right-btn {
+        .top-right-nav {
             position: absolute;
             top: 20px;
             right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
             font-size: 16px;
             color: #fff;
-            background-color: #3498db;
             padding: 10px 20px;
             text-decoration: none;
             border-radius: 5px;
-            border: 2px solid #2980b9;
-            box-shadow: 0 3px 0 #2980b9;
+            border: 2px solid;
+            box-shadow: 0 3px 0;
             transition: all 0.1s ease-in-out;
         }
 
-            .top-right-btn:hover {
-                background-color: #4aa3df;
-            }
-
-            .top-right-btn:active {
-                box-shadow: 0 1px 0 #2980b9;
+            .nav-btn:active {
+                box-shadow: 0 1px 0;
                 transform: translateY(2px);
             }
 
+        .register-btn {
+            background-color: #3498db;
+            border-color: #2980b9;
+            box-shadow: 0 3px 0 #2980b9;
+        }
+
+            .register-btn:hover {
+                background-color: #4aa3df;
+            }
+
+        .login-btn {
+            background-color: #2ecc71;
+            border-color: #27ae60;
+            box-shadow: 0 3px 0 #27ae60;
+        }
+
+            .login-btn:hover {
+                background-color: #3fe382;
+            }
 
         @media (max-width: 768px) {
             .game-selection {
@@ -150,7 +167,7 @@
                 font-size: 36px;
             }
 
-            .top-right-btn {
+            .nav-btn {
                 font-size: 14px;
                 padding: 8px 15px;
             }
@@ -164,8 +181,10 @@
     </style>
 </head>
 <body>
-    <!-- Register button is now here -->
-    <a href="registration.html" class="top-right-btn">Register</a>
+    <div class="top-right-nav">
+        <a href="login.html" class="nav-btn login-btn">Login</a>
+        <a href="registration.html" class="nav-btn register-btn">Register</a>
+    </div>
 
     <h1>ARCADE</h1>
     <div class="game-selection">
@@ -176,7 +195,6 @@
         <a href="doom.html" class="game-link">Pixel Doom</a>
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
-        <!-- The old register button has been removed from the grid -->
     </div>
 </body>
 </html>

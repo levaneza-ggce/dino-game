@@ -1,0 +1,174 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Levan's Arcade</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            text-align: center;
+            position: relative;
+        }
+
+        .form-container {
+            background-color: #2c3e50;
+            padding: 40px;
+            border-radius: 10px;
+            border: 3px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a1a1a;
+            border: 2px solid #00ffff;
+            border-radius: 5px;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #2ecc71; /* Green button */
+            border: 3px solid #27ae60;
+            border-radius: 8px;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            box-shadow: 0 5px 0 #27ae60;
+        }
+
+            .login-btn:hover {
+                background-color: #3fe382;
+            }
+
+            .login-btn:active {
+                box-shadow: 0 2px 0 #27ae60;
+                transform: translateY(3px);
+            }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(0, 255, 255, 0.2);
+            }
+
+        #message {
+            margin-top: 20px;
+            font-size: 14px;
+            height: 20px;
+            color: #e74c3c; /* Red for errors */
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
+    <div class="form-container">
+        <h1>Login</h1>
+        <form id="login-form">
+            <div class="input-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required>
+            </div>
+            <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="login-btn">Login</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const messageElement = document.getElementById('message');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = {
+                email: loginForm.email.value,
+                password: loginForm.password.value,
+            };
+
+            messageElement.textContent = 'Logging in...';
+            messageElement.style.color = '#fff';
+
+            try {
+                const response = await fetch('/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageElement.textContent = result.message;
+                    messageElement.style.color = '#2ecc71'; // Green
+                    loginForm.reset();
+                    // In a real app, you would redirect the user or save a token here
+                } else {
+                    messageElement.textContent = result.message;
+                    messageElement.style.color = '#e74c3c'; // Red
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                messageElement.textContent = 'An error occurred. Please try again.';
+                messageElement.style.color = '#e74c3c';
+            }
+        });
+    </script>
+</body>
+</html>
