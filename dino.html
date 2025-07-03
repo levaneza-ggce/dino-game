@@ -3,58 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Stylish Dino Game</title>
+    <title>Simple Dino Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
-        /* --- Color Palette using CSS Variables --- */
-        :root {
-            --bg-color: #f7f7f7;
-            --text-color: #535353;
-            --ground-color: #535353;
-            --dino-color: #535353;
-            --obstacle-color: #535353;
-            --sky-object-color: #ffc107; /* Sun */
-            --hit-color: #e74c3c; /* Red for hit flash */
-        }
-
-        body.night-mode {
-            --bg-color: #2c3e50;
-            --text-color: #ecf0f1;
-            --ground-color: #95a5a6;
-            --dino-color: #ecf0f1;
-            --obstacle-color: #ecf0f1;
-            --sky-object-color: #f1c40f; /* Moon */
-        }
-
-        /* --- Basic Setup --- */
         body {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #e0e0e0;
+            background-color: #f0f0f0;
             font-family: 'Press Start 2P', cursive;
-            color: var(--text-color);
+            color: #535353;
             overflow: hidden;
-            transition: background-color 2s;
+            position: relative; /* For button positioning */
         }
 
-        /* --- Game Container --- */
         #game-container {
             width: 100%;
             max-width: 600px;
             height: 250px;
-            border: 2px solid var(--ground-color);
+            border: 2px solid #535353;
             border-radius: 10px;
             position: relative;
             overflow: hidden;
-            background-color: var(--bg-color);
+            background-color: #f7f7f7;
             box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            transition: background-color 2s, border-color 2s;
         }
 
-        /* --- Scenery --- */
         .scenery {
             position: absolute;
             bottom: 0;
@@ -64,18 +40,6 @@
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="25"><path d="M0 25 V15 H1200 V25 Z" fill="%23535353" /><path d="M0 15 L10 10 L20 15 L25 12 L35 18 L45 15 H1200 V25 H0 Z" fill="%23888888" /></svg>');
             background-repeat: repeat-x;
             animation: move-scenery 4s linear infinite;
-        }
-
-        #sky-object {
-            width: 30px;
-            height: 30px;
-            background-color: var(--sky-object-color);
-            border-radius: 50%;
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            transition: background-color 2s;
-            box-shadow: 0 0 10px var(--sky-object-color);
         }
 
         @keyframes move-scenery {
@@ -88,7 +52,6 @@
             }
         }
 
-        /* --- Player (Dino) --- */
         #dino {
             width: 50px;
             height: 55px;
@@ -97,17 +60,8 @@
             left: 20px;
         }
 
-            #dino svg {
-                fill: var(--dino-color);
-                transition: fill 2s;
-            }
-
         .jump {
             animation: jump-animation 0.6s ease-out;
-        }
-
-        .dino-hit {
-            animation: hit-animation 0.5s ease-out;
         }
 
         @keyframes jump-animation {
@@ -124,37 +78,6 @@
             }
         }
 
-        @keyframes hit-animation {
-            0% {
-                transform: translateX(0);
-            }
-
-            20% {
-                fill: var(--hit-color);
-                transform: translateX(-5px);
-            }
-
-            40% {
-                fill: var(--dino-color);
-                transform: translateX(5px);
-            }
-
-            60% {
-                fill: var(--hit-color);
-                transform: translateX(-5px);
-            }
-
-            80% {
-                fill: var(--dino-color);
-                transform: translateX(5px);
-            }
-
-            100% {
-                transform: translateX(0);
-            }
-        }
-
-        /* --- Obstacles --- */
         .obstacle {
             width: 30px;
             height: 50px;
@@ -162,11 +85,6 @@
             bottom: 20px;
             animation: move-obstacle 2s linear infinite;
         }
-
-            .obstacle svg {
-                fill: var(--obstacle-color);
-                transition: fill 2s;
-            }
 
         @keyframes move-obstacle {
             from {
@@ -178,14 +96,12 @@
             }
         }
 
-        /* --- Score and Game Over Display --- */
         #score-container {
             position: absolute;
             top: 10px;
             right: 10px;
             font-size: 18px;
             z-index: 10;
-            transition: color 2s;
         }
 
         #game-message {
@@ -197,7 +113,6 @@
             text-align: center;
             z-index: 10;
             display: none;
-            transition: color 2s;
         }
 
             #game-message p {
@@ -205,19 +120,35 @@
                 margin-top: 10px;
                 color: #888;
             }
+
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #535353;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0,0,0,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #535353;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(0,0,0,0.2);
+            }
     </style>
 </head>
 <body>
+    <a href="index.html" class="back-button">← Menu</a>
 
     <div id="game-container">
-        <div id="sky-object"></div>
         <div id="scenery" class="scenery"></div>
         <div id="dino">
-            <svg viewBox="0 0 50 55" xmlns="http://www.w3.org/2000/svg">
-                <path d="M45.6,43.6H41.2V29.3c0-1.5-1.2-2.7-2.7-2.7H21.7c-1.5,0-2.7,1.2-2.7,2.7v7.1h-4V19.6c0-1.5-1.2-2.7-2.7-2.7H9.4c-1.5,0-2.7,1.2-2.7,2.7v21.3H4.4c-1.5,0-2.7,1.2-2.7,2.7v6.9h46.6v-6.9C48.3,44.8,47.1,43.6,45.6,43.6z" />
-                <path d="M21.7,24.1h11.1c1.5,0,2.7-1.2,2.7-2.7V4.7c0-1.5-1.2-2.7-2.7-2.7H21.7c-1.5,0-2.7,1.2-2.7,2.7v16.7C19,22.9,20.2,24.1,21.7,24.1z" />
-                <rect x="27.4" y="9.4" width="2.7" height="2.7" />
-            </svg>
+            <svg viewBox="0 0 50 55" fill="#535353" xmlns="http://www.w3.org/2000/svg"><path d="M45.6,43.6H41.2V29.3c0-1.5-1.2-2.7-2.7-2.7H21.7c-1.5,0-2.7,1.2-2.7,2.7v7.1h-4V19.6c0-1.5-1.2-2.7-2.7-2.7H9.4c-1.5,0-2.7,1.2-2.7,2.7v21.3H4.4c-1.5,0-2.7,1.2-2.7,2.7v6.9h46.6v-6.9C48.3,44.8,47.1,43.6,45.6,43.6z" /><path d="M21.7,24.1h11.1c1.5,0,2.7-1.2,2.7-2.7V4.7c0-1.5-1.2-2.7-2.7-2.7H21.7c-1.5,0-2.7,1.2-2.7,2.7v16.7C19,22.9,20.2,24.1,21.7,24.1z" /><rect x="27.4" y="9.4" width="2.7" height="2.7" /></svg>
         </div>
         <div id="score-container">Score: <span id="score">0</span></div>
         <div id="game-message">
@@ -227,122 +158,19 @@
     </div>
 
     <script>
-        // --- Game Elements ---
         const dino = document.getElementById('dino');
-        const dinoSvg = dino.querySelector('svg');
         const gameContainer = document.getElementById('game-container');
         const scoreElement = document.getElementById('score');
         const gameMessageElement = document.getElementById('game-message');
-        const body = document.body;
-
-        // --- Game State ---
-        let score = 0;
-        let isJumping = false;
-        let isGameOver = false;
-        let gameLoopInterval = null;
-        let obstacleGeneratorInterval = null;
-        const NIGHT_MODE_THRESHOLD = 500;
-
-        // --- Jump Function ---
-        function jump() {
-            if (isJumping || isGameOver) return;
-            isJumping = true;
-            dino.classList.add('jump');
-            setTimeout(() => {
-                dino.classList.remove('jump');
-                isJumping = false;
-            }, 600);
-        }
-
-        // --- Create Obstacles ---
-        function createObstacle() {
-            if (isGameOver) return;
-            const obstacle = document.createElement('div');
-            obstacle.classList.add('obstacle');
-            obstacle.innerHTML = `<svg viewBox="0 0 30 50" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 49.8H7.5c-1.5 0-2.7-1.2-2.7-2.7V12.5c0-1.5 1.2-2.7 2.7-2.7h15c1.5 0 2.7 1.2 2.7 2.7v34.6c0 1.5-1.2 2.7-2.7 2.7z"/><path d="M25.2 27.5h-2.7V17.9c0-1.5-1.2-2.7-2.7-2.7h-4.6c-1.5 0-2.7 1.2-2.7 2.7v12.3H4.8c-1.5 0-2.7 1.2-2.7 2.7v4.6c0 1.5 1.2 2.7 2.7 2.7h20.4c1.5 0 2.7-1.2 2.7-2.7v-4.6c0-1.5-1.2-2.7-2.7-2.7z"/></svg>`;
-            obstacle.style.animationDuration = `${Math.random() * (2.5 - 1.5) + 1.5}s`;
-            gameContainer.appendChild(obstacle);
-            setTimeout(() => obstacle.remove(), 3000);
-        }
-
-        // --- Game Loop ---
-        function gameLoop() {
-            if (isGameOver) return;
-            score++;
-            scoreElement.textContent = score;
-
-            // Day/Night Cycle Logic
-            if (score % (NIGHT_MODE_THRESHOLD * 2) === NIGHT_MODE_THRESHOLD) {
-                body.classList.add('night-mode');
-            } else if (score % (NIGHT_MODE_THRESHOLD * 2) === 0) {
-                body.classList.remove('night-mode');
-            }
-
-            const dinoRect = dino.getBoundingClientRect();
-            document.querySelectorAll('.obstacle').forEach(obstacle => {
-                const obstacleRect = obstacle.getBoundingClientRect();
-                if (
-                    dinoRect.left < obstacleRect.right &&
-                    dinoRect.right > obstacleRect.left &&
-                    dinoRect.top < obstacleRect.bottom &&
-                    dinoRect.bottom > obstacleRect.top
-                ) {
-                    endGame();
-                }
-            });
-        }
-
-        // --- Start and End Game ---
-        function startGame() {
-            isGameOver = false;
-            score = 0;
-            scoreElement.textContent = score;
-            gameMessageElement.style.display = 'none';
-            body.classList.remove('night-mode');
-            dinoSvg.classList.remove('dino-hit'); // Reset hit animation class
-
-            document.querySelectorAll('.obstacle').forEach(el => el.remove());
-
-            gameLoopInterval = setInterval(gameLoop, 50);
-            obstacleGeneratorInterval = setInterval(createObstacle, 2000);
-        }
-
-        function endGame() {
-            isGameOver = true;
-            clearInterval(gameLoopInterval);
-            clearInterval(obstacleGeneratorInterval);
-
-            dinoSvg.classList.add('dino-hit'); // Add hit animation class
-
-            setTimeout(() => {
-                gameMessageElement.style.display = 'block';
-            }, 500); // Delay the "Game Over" message
-        }
-
-        // --- Event Listeners ---
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                e.preventDefault();
-                if (isGameOver) {
-                    startGame();
-                } else {
-                    jump();
-                }
-            }
-        });
-
-        gameContainer.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (isGameOver) {
-                startGame();
-            } else {
-                jump();
-            }
-        });
-
-        // --- Initial Game Start ---
+        let score = 0, isJumping = false, isGameOver = false, gameLoopInterval = null, obstacleGeneratorInterval = null;
+        function jump() { if (isJumping || isGameOver) return; isJumping = true; dino.classList.add('jump'); setTimeout(() => { dino.classList.remove('jump'); isJumping = false; }, 600); }
+        function createObstacle() { if (isGameOver) return; const obstacle = document.createElement('div'); obstacle.classList.add('obstacle'); obstacle.innerHTML = `<svg viewBox="0 0 30 50" fill="#535353" xmlns="http://www.w3.org/2000/svg"><path d="M22.5 49.8H7.5c-1.5 0-2.7-1.2-2.7-2.7V12.5c0-1.5 1.2-2.7 2.7-2.7h15c1.5 0 2.7 1.2 2.7 2.7v34.6c0 1.5-1.2 2.7-2.7 2.7z"/><path d="M25.2 27.5h-2.7V17.9c0-1.5-1.2-2.7-2.7-2.7h-4.6c-1.5 0-2.7 1.2-2.7 2.7v12.3H4.8c-1.5 0-2.7 1.2-2.7 2.7v4.6c0 1.5 1.2 2.7 2.7 2.7h20.4c1.5 0 2.7-1.2 2.7-2.7v-4.6c0-1.5-1.2-2.7-2.7-2.7z"/></svg>`; obstacle.style.animationDuration = `${Math.random() * (2.5 - 1.5) + 1.5}s`; gameContainer.appendChild(obstacle); setTimeout(() => obstacle.remove(), 3000); }
+        function gameLoop() { if (isGameOver) return; score++; scoreElement.textContent = score; const dinoRect = dino.getBoundingClientRect(); document.querySelectorAll('.obstacle').forEach(obstacle => { const obstacleRect = obstacle.getBoundingClientRect(); if (dinoRect.left < obstacleRect.right && dinoRect.right > obstacleRect.left && dinoRect.top < obstacleRect.bottom && dinoRect.bottom > obstacleRect.top) { endGame(); } }); }
+        function startGame() { isGameOver = false; score = 0; scoreElement.textContent = score; gameMessageElement.style.display = 'none'; document.querySelectorAll('.obstacle').forEach(el => el.remove()); gameLoopInterval = setInterval(gameLoop, 50); obstacleGeneratorInterval = setInterval(createObstacle, 2000); }
+        function endGame() { isGameOver = true; clearInterval(gameLoopInterval); clearInterval(obstacleGeneratorInterval); gameMessageElement.style.display = 'block'; }
+        document.addEventListener('keydown', (e) => { if (e.code === 'Space') { e.preventDefault(); if (isGameOver) { startGame(); } else { jump(); } } });
+        gameContainer.addEventListener('touchstart', (e) => { e.preventDefault(); if (isGameOver) { startGame(); } else { jump(); } });
         startGame();
-
     </script>
 </body>
 </html>

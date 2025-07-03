@@ -14,11 +14,11 @@
             margin: 0;
             background-color: #000;
             font-family: 'Press Start 2P', cursive;
-            overflow: hidden;
+            position: relative; /* For button positioning */
         }
 
         #game-container {
-            border: 2px solid #ffe81f; /* Star Wars yellow */
+            border: 2px solid #ffe81f;
             position: relative;
             overflow: hidden;
             background-color: #000;
@@ -42,9 +42,31 @@
                 background-position: 0 550px, 40px 410px, 130px 520px, 70px 250px;
             }
         }
+
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #ffe81f; /* Star Wars yellow */
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(255, 232, 31, 0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #ffe81f;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(255, 232, 31, 0.2);
+            }
     </style>
 </head>
 <body>
+    <a href="index.html" class="back-button">← Menu</a>
+
     <div id="game-container">
         <canvas id="gameCanvas" width="600" height="400"></canvas>
     </div>
@@ -52,169 +74,17 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        // --- Game Objects ---
         let player, lasers, asteroids, score, isGameOver;
-
-        // Player (X-Wing)
-        const playerShip = {
-            x: canvas.width / 2 - 25,
-            y: canvas.height - 60,
-            width: 50,
-            height: 50,
-            speed: 5,
-            draw: function() {
-                ctx.fillStyle = '#d3d3d3'; // Light grey body
-                ctx.beginPath();
-                ctx.moveTo(this.x + this.width / 2, this.y); // Nose
-                ctx.lineTo(this.x, this.y + this.height); // Left wing
-                ctx.lineTo(this.x + this.width, this.y + this.height); // Right wing
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = '#c0392b'; // Red markings
-                ctx.fillRect(this.x + this.width / 2 - 2.5, this.y + 10, 5, 15);
-            }
-        };
-
-        // Laser
-        class Laser {
-            constructor(x, y) {
-                this.x = x;
-                this.y = y;
-                this.width = 4;
-                this.height = 15;
-                this.speed = 7;
-            }
-            draw() {
-                ctx.fillStyle = '#3498db'; // Blue laser
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-            }
-            update() {
-                this.y -= this.speed;
-            }
-        }
-
-        // Asteroid
-        class Asteroid {
-            constructor() {
-                this.radius = Math.random() * 20 + 15; // size
-                this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius;
-                this.y = -this.radius;
-                this.speed = Math.random() * 2 + 1;
-            }
-            draw() {
-                ctx.fillStyle = '#7f8c8d'; // Grey asteroid
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-            update() {
-                this.y += this.speed;
-            }
-        }
-
-        // --- Game Controls ---
-        let rightPressed = false;
-        let leftPressed = false;
-
-        document.addEventListener("keydown", (e) => {
-            if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true;
-            if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true;
-            if (e.code === "Space" && !isGameOver) {
-                lasers.push(new Laser(player.x + player.width / 2 - 2, player.y));
-            }
-            if (e.code === "Enter" && isGameOver) {
-                init();
-            }
-        });
-
-        document.addEventListener("keyup", (e) => {
-            if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false;
-            if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false;
-        });
-
-        // --- Game Logic ---
-        function init() {
-            player = Object.assign({}, playerShip);
-            lasers = [];
-            asteroids = [];
-            score = 0;
-            isGameOver = false;
-            // Initial asteroid
-            setTimeout(() => asteroids.push(new Asteroid()), 1000);
-            gameLoop();
-        }
-
-        function update() {
-            if (isGameOver) return;
-
-            // Move player
-            if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
-            if (leftPressed && player.x > 0) player.x -= player.speed;
-
-            // Update lasers
-            lasers.forEach((laser, index) => {
-                laser.update();
-                if (laser.y < 0) lasers.splice(index, 1);
-            });
-
-            // Update asteroids
-            asteroids.forEach((asteroid, astIndex) => {
-                asteroid.update();
-                if (asteroid.y > canvas.height + asteroid.radius) {
-                    asteroids.splice(astIndex, 1);
-                }
-
-                // Collision: laser and asteroid
-                lasers.forEach((laser, lasIndex) => {
-                    const dist = Math.hypot(laser.x - asteroid.x, laser.y - asteroid.y);
-                    if (dist < asteroid.radius) {
-                        asteroids.splice(astIndex, 1);
-                        lasers.splice(lasIndex, 1);
-                        score += 10;
-                    }
-                });
-
-                // Collision: player and asteroid
-                const distPlayer = Math.hypot(player.x + player.width/2 - asteroid.x, player.y + player.height/2 - asteroid.y);
-                if (distPlayer < asteroid.radius + player.width/2) {
-                    isGameOver = true;
-                }
-            });
-
-            // Add new asteroids periodically
-            if (Math.random() < 0.02) {
-                asteroids.push(new Asteroid());
-            }
-        }
-
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            player.draw();
-            lasers.forEach(laser => laser.draw());
-            asteroids.forEach(asteroid => asteroid.draw());
-
-            // Score
-            ctx.fillStyle = "#ffe81f";
-            ctx.font = "20px 'Press Start 2P'";
-            ctx.fillText("Score: " + score, 10, 30);
-
-            if (isGameOver) {
-                ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
-                ctx.font = "14px 'Press Start 2P'";
-                ctx.fillText("Press Enter to Restart", canvas.width / 2, canvas.height / 2 + 30);
-            }
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            if (!isGameOver) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
+        const playerShip = { x: canvas.width / 2 - 25, y: canvas.height - 60, width: 50, height: 50, speed: 5, draw: function () { ctx.fillStyle = '#d3d3d3'; ctx.beginPath(); ctx.moveTo(this.x + this.width / 2, this.y); ctx.lineTo(this.x, this.y + this.height); ctx.lineTo(this.x + this.width, this.y + this.height); ctx.closePath(); ctx.fill(); ctx.fillStyle = '#c0392b'; ctx.fillRect(this.x + this.width / 2 - 2.5, this.y + 10, 5, 15); } };
+        class Laser { constructor(x, y) { this.x = x; this.y = y; this.width = 4; this.height = 15; this.speed = 7; } draw() { ctx.fillStyle = '#3498db'; ctx.fillRect(this.x, this.y, this.width, this.height); } update() { this.y -= this.speed; } }
+        class Asteroid { constructor() { this.radius = Math.random() * 20 + 15; this.x = Math.random() * (canvas.width - this.radius * 2) + this.radius; this.y = -this.radius; this.speed = Math.random() * 2 + 1; } draw() { ctx.fillStyle = '#7f8c8d'; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill(); } update() { this.y += this.speed; } }
+        let rightPressed = false, leftPressed = false;
+        document.addEventListener("keydown", (e) => { if (e.key === "Right" || e.key === "ArrowRight") rightPressed = true; if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = true; if (e.code === "Space" && !isGameOver) { lasers.push(new Laser(player.x + player.width / 2 - 2, player.y)); } if (e.code === "Enter" && isGameOver) { init(); } });
+        document.addEventListener("keyup", (e) => { if (e.key === "Right" || e.key === "ArrowRight") rightPressed = false; if (e.key === "Left" || e.key === "ArrowLeft") leftPressed = false; });
+        function init() { player = Object.assign({}, playerShip); lasers = []; asteroids = []; score = 0; isGameOver = false; setTimeout(() => asteroids.push(new Asteroid()), 1000); gameLoop(); }
+        function update() { if (isGameOver) return; if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed; if (leftPressed && player.x > 0) player.x -= player.speed; lasers.forEach((laser, index) => { laser.update(); if (laser.y < 0) lasers.splice(index, 1); }); asteroids.forEach((asteroid, astIndex) => { asteroid.update(); if (asteroid.y > canvas.height + asteroid.radius) { asteroids.splice(astIndex, 1); } lasers.forEach((laser, lasIndex) => { const dist = Math.hypot(laser.x - asteroid.x, laser.y - asteroid.y); if (dist < asteroid.radius) { asteroids.splice(astIndex, 1); lasers.splice(lasIndex, 1); score += 10; } }); const distPlayer = Math.hypot(player.x + player.width / 2 - asteroid.x, player.y + player.height / 2 - asteroid.y); if (distPlayer < asteroid.radius + player.width / 2) { isGameOver = true; } }); if (Math.random() < 0.02) { asteroids.push(new Asteroid()); } }
+        function draw() { ctx.clearRect(0, 0, canvas.width, canvas.height); player.draw(); lasers.forEach(laser => laser.draw()); asteroids.forEach(asteroid => asteroid.draw()); ctx.fillStyle = "#ffe81f"; ctx.font = "20px 'Press Start 2P'"; ctx.fillText("Score: " + score, 10, 30); if (isGameOver) { ctx.textAlign = "center"; ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2); ctx.font = "14px 'Press Start 2P'"; ctx.fillText("Press Enter to Restart", canvas.width / 2, canvas.height / 2 + 30); } }
+        function gameLoop() { update(); draw(); if (!isGameOver) { requestAnimationFrame(gameLoop); } }
         init();
     </script>
 </body>

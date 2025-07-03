@@ -13,9 +13,10 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #3498db; /* Blue sky */
+            background-color: #3498db;
             font-family: 'Press Start 2P', cursive;
             color: #fff;
+            position: relative; /* For button positioning */
         }
 
         #game-container {
@@ -25,7 +26,7 @@
 
         canvas {
             display: block;
-            background-color: #87CEEB; /* Lighter sky blue */
+            background-color: #87CEEB;
         }
 
         h1 {
@@ -33,9 +34,30 @@
             margin-bottom: 20px;
             text-shadow: 3px 3px 0 #000;
         }
+        /* --- Back Button Style --- */
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0,0,0,0.2);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(0,0,0,0.4);
+            }
     </style>
 </head>
 <body>
+    <a href="index.html" class="back-button">← Menu</a>
+
     <h1>Flappy Bot</h1>
     <div id="game-container">
         <canvas id="gameCanvas" width="400" height="600"></canvas>
@@ -44,158 +66,16 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-
-        // Game variables
         let bird, pipes, score, isGameOver;
-        const gravity = 0.6;
-        const lift = -10;
-        const pipeWidth = 60;
-        const pipeGap = 150;
-
-        // Bird object
-        const birdChar = {
-            x: 50,
-            y: 150,
-            width: 40,
-            height: 30,
-            velocity: 0,
-            draw: function() {
-                ctx.fillStyle = '#f1c40f'; // Yellow bot
-                ctx.fillRect(this.x, this.y, this.width, this.height);
-                // Eye
-                ctx.fillStyle = '#000';
-                ctx.fillRect(this.x + 25, this.y + 10, 5, 5);
-            },
-            update: function() {
-                this.velocity += gravity;
-                this.y += this.velocity;
-
-                if (this.y + this.height > canvas.height) {
-                    this.y = canvas.height - this.height;
-                    this.velocity = 0;
-                    endGame();
-                }
-                if (this.y < 0) {
-                    this.y = 0;
-                    this.velocity = 0;
-                }
-            },
-            flap: function() {
-                this.velocity = lift;
-            }
-        };
-
-        // Pipe class
-        class Pipe {
-            constructor() {
-                this.top = Math.random() * (canvas.height / 2);
-                this.bottom = this.top + pipeGap;
-                this.x = canvas.width;
-                this.width = pipeWidth;
-                this.speed = 3;
-                this.highlight = false;
-            }
-            draw() {
-                ctx.fillStyle = '#27ae60'; // Green pipes
-                ctx.fillRect(this.x, 0, this.width, this.top);
-                ctx.fillRect(this.x, this.bottom, this.width, canvas.height - this.bottom);
-            }
-            update() {
-                this.x -= this.speed;
-            }
-            hits(bird) {
-                if (bird.y < this.top || bird.y + bird.height > this.bottom) {
-                    if (bird.x + bird.width > this.x && bird.x < this.x + this.width) {
-                        this.highlight = true;
-                        return true;
-                    }
-                }
-                this.highlight = false;
-                return false;
-            }
-        }
-
-        // Game setup
-        function setup() {
-            bird = Object.assign({}, birdChar);
-            pipes = [new Pipe()];
-            score = 0;
-            isGameOver = false;
-            gameLoop();
-        }
-
-        // Game loop
-        function gameLoop() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            // Bird
-            bird.update();
-            bird.draw();
-
-            // Pipes
-            if (pipes[pipes.length - 1].x < canvas.width - 200) {
-                pipes.push(new Pipe());
-            }
-
-            for (let i = pipes.length - 1; i >= 0; i--) {
-                pipes[i].update();
-                pipes[i].draw();
-
-                if (pipes[i].hits(bird)) {
-                    endGame();
-                }
-
-                if (pipes[i].x + pipes[i].width < bird.x && !pipes[i].passed) {
-                    pipes[i].passed = true;
-                    score++;
-                }
-
-                if (pipes[i].x < -pipes[i].width) {
-                    pipes.splice(i, 1);
-                }
-            }
-
-            // Score
-            ctx.fillStyle = "#fff";
-            ctx.font = "24px 'Press Start 2P'";
-            ctx.fillText(score, canvas.width / 2, 50);
-
-            if (!isGameOver) {
-                requestAnimationFrame(gameLoop);
-            }
-        }
-
-        function endGame() {
-            isGameOver = true;
-            ctx.textAlign = "center";
-            ctx.fillStyle = "#fff";
-            ctx.font = "32px 'Press Start 2P'";
-            ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20);
-            ctx.font = "16px 'Press Start 2P'";
-            ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 20);
-        }
-
-        // Event Listeners
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space') {
-                if (isGameOver) {
-                    setup();
-                } else {
-                    bird.flap();
-                }
-            }
-        });
-
-        canvas.addEventListener('touchstart', () => {
-             if (isGameOver) {
-                setup();
-            } else {
-                bird.flap();
-            }
-        });
-
+        const gravity = 0.6, lift = -10, pipeWidth = 60, pipeGap = 150;
+        const birdChar = { x: 50, y: 150, width: 40, height: 30, velocity: 0, draw: function () { ctx.fillStyle = '#f1c40f'; ctx.fillRect(this.x, this.y, this.width, this.height); ctx.fillStyle = '#000'; ctx.fillRect(this.x + 25, this.y + 10, 5, 5); }, update: function () { this.velocity += gravity; this.y += this.velocity; if (this.y + this.height > canvas.height) { this.y = canvas.height - this.height; this.velocity = 0; endGame(); } if (this.y < 0) { this.y = 0; this.velocity = 0; } }, flap: function () { this.velocity = lift; } };
+        class Pipe { constructor() { this.top = Math.random() * (canvas.height / 2); this.bottom = this.top + pipeGap; this.x = canvas.width; this.width = pipeWidth; this.speed = 3; this.highlight = false; } draw() { ctx.fillStyle = '#27ae60'; ctx.fillRect(this.x, 0, this.width, this.top); ctx.fillRect(this.x, this.bottom, this.width, canvas.height - this.bottom); } update() { this.x -= this.speed; } hits(bird) { if (bird.y < this.top || bird.y + bird.height > this.bottom) { if (bird.x + bird.width > this.x && bird.x < this.x + this.width) { this.highlight = true; return true; } } this.highlight = false; return false; } }
+        function setup() { bird = Object.assign({}, birdChar); pipes = [new Pipe()]; score = 0; isGameOver = false; gameLoop(); }
+        function gameLoop() { ctx.clearRect(0, 0, canvas.width, canvas.height); bird.update(); bird.draw(); if (pipes[pipes.length - 1].x < canvas.width - 200) { pipes.push(new Pipe()); } for (let i = pipes.length - 1; i >= 0; i--) { pipes[i].update(); pipes[i].draw(); if (pipes[i].hits(bird)) { endGame(); } if (pipes[i].x + pipes[i].width < bird.x && !pipes[i].passed) { pipes[i].passed = true; score++; } if (pipes[i].x < -pipes[i].width) { pipes.splice(i, 1); } } ctx.fillStyle = "#fff"; ctx.font = "24px 'Press Start 2P'"; ctx.fillText(score, canvas.width / 2, 50); if (!isGameOver) { requestAnimationFrame(gameLoop); } }
+        function endGame() { isGameOver = true; ctx.textAlign = "center"; ctx.fillStyle = "#fff"; ctx.font = "32px 'Press Start 2P'"; ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 20); ctx.font = "16px 'Press Start 2P'"; ctx.fillText("Press Space to Restart", canvas.width / 2, canvas.height / 2 + 20); }
+        document.addEventListener('keydown', (e) => { if (e.code === 'Space') { if (isGameOver) { setup(); } else { bird.flap(); } } });
+        canvas.addEventListener('touchstart', () => { if (isGameOver) { setup(); } else { bird.flap(); } });
         setup();
-
     </script>
 </body>
 </html>
