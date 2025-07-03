@@ -100,11 +100,12 @@
             .back-button:hover {
                 background-color: rgba(0, 255, 255, 0.2);
             }
-        /* Message style */
+
         #message {
             margin-top: 20px;
             font-size: 14px;
             height: 20px;
+            color: #e74c3c; /* Red for errors */
         }
     </style>
 </head>
@@ -114,12 +115,8 @@
         <h1>Create Account</h1>
         <form id="registration-form">
             <div class="input-group">
-                <label for="name">Name</label>
-                <input type="text" id="name" name="name" required>
-            </div>
-            <div class="input-group">
-                <label for="surname">Surname</label>
-                <input type="text" id="surname" name="surname" required>
+                <label for="fullName">Full Name</label>
+                <input type="text" id="fullName" name="fullName" required>
             </div>
             <div class="input-group">
                 <label for="email">Email</label>
@@ -129,66 +126,62 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
+            <div class="input-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required>
+            </div>
             <button type="submit" class="register-btn">Register</button>
         </form>
         <div id="message"></div>
     </div>
 
-    <!-- Firebase SDK -->
-    <script type="module">
-        // These global variables are provided by the environment.
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "your-api-key", authDomain: "your-auth-domain", projectId: "your-project-id" };
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-        // Import statements for Firebase services
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
+    <script>
         const registrationForm = document.getElementById('registration-form');
         const messageElement = document.getElementById('message');
 
         registrationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Get form data
-            const name = registrationForm.name.value;
-            const surname = registrationForm.surname.value;
+            const fullName = registrationForm.fullName.value;
             const email = registrationForm.email.value;
             const password = registrationForm.password.value;
+            const confirmPassword = registrationForm.confirmPassword.value;
+
+            // --- Client-side validation ---
+            if (password !== confirmPassword) {
+                messageElement.textContent = 'Passwords do not match!';
+                return;
+            }
+
+            const formData = { fullName, email, password };
 
             messageElement.textContent = 'Registering...';
             messageElement.style.color = '#fff';
 
             try {
-                // 1. Create user with Firebase Authentication
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                // 2. Store additional user info in Firestore
-                // We'll store this in a 'users' collection
-                const docRef = await addDoc(collection(db, "users"), {
-                    uid: user.uid,
-                    name: name,
-                    surname: surname,
-                    email: email,
-                    createdAt: new Date()
+                const response = await fetch('/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData),
                 });
 
-                console.log("Document written with ID: ", docRef.id);
-                messageElement.textContent = 'Registration successful!';
-                messageElement.style.color = '#2ecc71'; // Green for success
-                registrationForm.reset();
+                const result = await response.json();
+
+                if (response.ok) {
+                    messageElement.textContent = result.message;
+                    messageElement.style.color = '#2ecc71'; // Green
+                    registrationForm.reset();
+                } else {
+                    messageElement.textContent = result.message;
+                    messageElement.style.color = '#e74c3c'; // Red
+                }
 
             } catch (error) {
-                console.error("Error adding document: ", error);
-                messageElement.textContent = error.message;
-                messageElement.style.color = '#e74c3c'; // Red for error
+                console.error('Error:', error);
+                messageElement.textContent = 'An error occurred. Please try again.';
+                messageElement.style.color = '#e74c3c';
             }
         });
     </script>
