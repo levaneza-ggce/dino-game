@@ -1,0 +1,276 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vector Fury</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #00ffff;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            background-color: #0d0d0d;
+            border: 2px solid #00ffff;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #00ffff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(0, 255, 255, 0.2);
+            }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
+    <h1>Vector Fury</h1>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Game Objects ---
+        let player, bullets, asteroids, score, lives, isGameOver, keys;
+        const FRICTION = 0.99;
+        const SHIP_SIZE = 20;
+        const TURN_SPEED = 0.05;
+        const THRUST_POWER = 0.1;
+        const BULLET_SPEED = 5;
+        const ASTEROID_NUM = 3;
+        const ASTEROID_SPEED = 1;
+        const ASTEROID_SIZE = 50;
+
+        class Ship {
+            constructor() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.radius = SHIP_SIZE / 2;
+                this.angle = 0; // Pointing up
+                this.vel = { x: 0, y: 0 };
+            }
+            draw() {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo( // Nose
+                    this.x + this.radius * Math.cos(this.angle),
+                    this.y - this.radius * Math.sin(this.angle)
+                );
+                ctx.lineTo( // Rear left
+                    this.x - this.radius * (Math.cos(this.angle) + Math.sin(this.angle)),
+                    this.y + this.radius * (Math.sin(this.angle) - Math.cos(this.angle))
+                );
+                ctx.lineTo( // Rear right
+                    this.x - this.radius * (Math.cos(this.angle) - Math.sin(this.angle)),
+                    this.y + this.radius * (Math.sin(this.angle) + Math.cos(this.angle))
+                );
+                ctx.closePath();
+                ctx.stroke();
+            }
+            update() {
+                // Rotate
+                if (keys['ArrowLeft']) this.angle += TURN_SPEED;
+                if (keys['ArrowRight']) this.angle -= TURN_SPEED;
+                // Thrust
+                if (keys['ArrowUp']) {
+                    this.vel.x += THRUST_POWER * Math.cos(this.angle);
+                    this.vel.y -= THRUST_POWER * Math.sin(this.angle);
+                }
+                // Apply friction
+                this.vel.x *= FRICTION;
+                this.vel.y *= FRICTION;
+                // Move
+                this.x += this.vel.x;
+                this.y += this.vel.y;
+                // Screen wrap
+                if (this.x < -this.radius) this.x = canvas.width + this.radius;
+                if (this.x > canvas.width + this.radius) this.x = -this.radius;
+                if (this.y < -this.radius) this.y = canvas.height + this.radius;
+                if (this.y > canvas.height + this.radius) this.y = -this.radius;
+            }
+            shoot() {
+                bullets.push(new Bullet(
+                    this.x + this.radius * Math.cos(this.angle),
+                    this.y - this.radius * Math.sin(this.angle),
+                    this.angle
+                ));
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, angle) {
+                this.x = x;
+                this.y = y;
+                this.vel = {
+                    x: BULLET_SPEED * Math.cos(angle),
+                    y: -BULLET_SPEED * Math.sin(angle)
+                };
+                this.radius = 3;
+            }
+            draw() {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                this.x += this.vel.x;
+                this.y += this.vel.y;
+            }
+        }
+
+        class Asteroid {
+            constructor(x, y, radius) {
+                this.x = x || Math.random() * canvas.width;
+                this.y = y || Math.random() * canvas.height;
+                this.radius = radius || ASTEROID_SIZE;
+                this.vel = {
+                    x: (Math.random() - 0.5) * ASTEROID_SPEED,
+                    y: (Math.random() - 0.5) * ASTEROID_SPEED
+                };
+            }
+            draw() {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            update() {
+                this.x += this.vel.x;
+                this.y += this.vel.y;
+                // Screen wrap
+                if (this.x < -this.radius) this.x = canvas.width + this.radius;
+                if (this.x > canvas.width + this.radius) this.x = -this.radius;
+                if (this.y < -this.radius) this.y = canvas.height + this.radius;
+                if (this.y > canvas.height + this.radius) this.y = -this.radius;
+            }
+        }
+
+        function init() {
+            player = new Ship();
+            bullets = [];
+            asteroids = [];
+            for (let i = 0; i < ASTEROID_NUM; i++) {
+                asteroids.push(new Asteroid());
+            }
+            score = 0;
+            lives = 3;
+            isGameOver = false;
+            keys = {};
+            gameLoop();
+        }
+
+        function handleCollisions() {
+            // Asteroids and Bullets
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    const dist = Math.hypot(asteroids[i].x - bullets[j].x, asteroids[i].y - bullets[j].y);
+                    if (dist < asteroids[i].radius) {
+                        if (asteroids[i].radius > ASTEROID_SIZE / 4) {
+                            asteroids.push(new Asteroid(asteroids[i].x, asteroids[i].y, asteroids[i].radius / 2));
+                            asteroids.push(new Asteroid(asteroids[i].x, asteroids[i].y, asteroids[i].radius / 2));
+                            score += 50;
+                        } else {
+                            score += 100;
+                        }
+                        asteroids.splice(i, 1);
+                        bullets.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            // Player and Asteroids
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const dist = Math.hypot(player.x - asteroids[i].x, player.y - asteroids[i].y);
+                if (dist < player.radius + asteroids[i].radius) {
+                    lives--;
+                    if (lives <= 0) {
+                        isGameOver = true;
+                    } else {
+                        asteroids.splice(i, 1);
+                        player = new Ship(); // Respawn
+                    }
+                }
+            }
+        }
+
+        function drawUI() {
+            ctx.fillStyle = '#fff';
+            ctx.font = "20px 'Press Start 2P'";
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 20, 40);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Lives: ${lives}`, canvas.width - 20, 40);
+
+            if (isGameOver) {
+                ctx.textAlign = 'center';
+                ctx.font = "48px 'Press Start 2P'";
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                ctx.font = "20px 'Press Start 2P'";
+                ctx.fillText('Press Enter to Restart', canvas.width / 2, canvas.height / 2 + 50);
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!isGameOver) {
+                player.update();
+                bullets.forEach(b => b.update());
+                asteroids.forEach(a => a.update());
+                handleCollisions();
+            }
+
+            player.draw();
+            bullets.forEach(b => b.draw());
+            asteroids.forEach(a => a.draw());
+            drawUI();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && !isGameOver) player.shoot();
+            if (e.code === 'Enter' && isGameOver) init();
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        init();
+    </script>
+</body>
+</html>
