@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #000;
+            font-family: 'Press Start 2P', cursive;
+            color: #fff;
+            position: relative;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 2px 2px 0 #000;
+            margin-bottom: 20px;
+        }
+
+        canvas {
+            background-color: #0d0d0d;
+            border: 2px solid #fff;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-radius: 5px;
+            border: 2px solid #fff;
+            transition: background-color 0.2s;
+        }
+
+            .back-button:hover {
+                background-color: rgba(255,255,255,0.2);
+            }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
+    <h1>PONG</h1>
+    <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // --- Game Objects ---
+        const paddleWidth = 15, paddleHeight = 100;
+        const player = {
+            x: 10,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            score: 0
+        };
+        const computer = {
+            x: canvas.width - paddleWidth - 10,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            score: 0
+        };
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 10,
+            speed: 7,
+            dx: 5,
+            dy: 5
+        };
+
+        // --- Game State ---
+        let isGameOver = false;
+
+        // --- Event Listeners ---
+        canvas.addEventListener('mousemove', movePaddle);
+
+        function movePaddle(e) {
+            const rect = canvas.getBoundingClientRect();
+            player.y = e.clientY - rect.top - player.height / 2;
+        }
+
+        // --- Game Logic ---
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.dx = -ball.dx; // Change direction
+            ball.speed = 7;
+        }
+
+        function update() {
+            if (isGameOver) return;
+
+            // Move ball
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Ball collision with top/bottom walls
+            if (ball.y + ball.radius > canvas.height || ball.y - ball.radius < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            // Ball collision with paddles
+            let selectedPaddle = ball.x < canvas.width / 2 ? player : computer;
+            if (isColliding(ball, selectedPaddle)) {
+                ball.dx = -ball.dx;
+                ball.speed += 0.5; // Increase speed
+            }
+
+            // Computer AI
+            computer.y += (ball.y - (computer.y + computer.height / 2)) * 0.1;
+
+            // Score points
+            if (ball.x - ball.radius < 0) {
+                computer.score++;
+                resetBall();
+            } else if (ball.x + ball.radius > canvas.width) {
+                player.score++;
+                resetBall();
+            }
+
+            // Check for winner
+            if(player.score === 7 || computer.score === 7) {
+                isGameOver = true;
+            }
+        }
+
+        function isColliding(b, p) {
+            return b.x + b.radius > p.x && b.x - b.radius < p.x + p.width &&
+                   b.y + b.radius > p.y && b.y - b.radius < p.y + p.height;
+        }
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#0d0d0d';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw paddles
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillRect(computer.x, computer.y, computer.width, computer.height);
+
+            // Draw ball
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Draw net
+            ctx.strokeStyle = '#fff';
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Draw scores
+            ctx.font = "48px 'Press Start 2P'";
+            ctx.fillText(player.score, canvas.width / 4, 60);
+            ctx.fillText(computer.score, 3 * canvas.width / 4, 60);
+
+            if(isGameOver) {
+                ctx.textAlign = 'center';
+                ctx.fillText(player.score === 7 ? "YOU WIN!" : "GAME OVER", canvas.width / 2, canvas.height / 2);
+                ctx.font = "20px 'Press Start 2P'";
+                ctx.fillText("Click to Restart", canvas.width / 2, canvas.height / 2 + 50);
+                canvas.addEventListener('click', () => document.location.reload(), { once: true });
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            if (!isGameOver) {
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
