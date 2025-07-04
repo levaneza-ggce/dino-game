@@ -117,7 +117,8 @@
             top: 20px;
             right: 20px;
             display: flex;
-            gap: 10px;
+            align-items: center;
+            gap: 15px;
         }
 
         .nav-btn {
@@ -135,6 +136,21 @@
             .nav-btn:active {
                 box-shadow: 0 1px 0;
                 transform: translateY(2px);
+            }
+
+        .welcome-msg {
+            font-size: 14px;
+            color: #00ffff;
+        }
+
+        .profile-btn {
+            background-color: #f1c40f;
+            border-color: #f39c12;
+            box-shadow: 0 3px 0 #f39c12;
+        }
+
+            .profile-btn:hover {
+                background-color: #f39c12;
             }
 
         .register-btn {
@@ -212,11 +228,16 @@
 
         async function checkLoginStatus() {
             try {
+                // FIX: Use the full URL for the fetch request
                 const response = await fetch(window.location.origin + '/api/session-status');
                 const data = await response.json();
 
                 if (data.loggedIn) {
-                    navContainer.innerHTML = `<button id="logout-btn" class="nav-btn logout-btn">Logout</button>`;
+                    navContainer.innerHTML = `
+                        <span class="welcome-msg">Welcome, ${data.user.name.split(' ')[0]}!</span>
+                        <a href="profile.html" class="nav-btn profile-btn">Profile</a>
+                        <button id="logout-btn" class="nav-btn logout-btn">Logout</button>
+                    `;
                     document.getElementById('logout-btn').addEventListener('click', logout);
                 } else {
                     navContainer.innerHTML = `
@@ -231,14 +252,14 @@
 
         async function logout() {
             try {
+                // FIX: Use the full URL for the fetch request
                 await fetch(window.location.origin + '/logout');
-                window.location.reload(); // Reload the page to update the nav
+                window.location.reload();
             } catch (error) {
                 console.error('Error during logout:', error);
             }
         }
 
-        // Check login status when the page loads
         document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
 </body>
