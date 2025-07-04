@@ -21,6 +21,7 @@
             position: relative;
         }
 
+            /* Animated Background Grid */
             body::before {
                 content: '';
                 position: absolute;
@@ -78,14 +79,14 @@
 
         .game-selection {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
+            grid-template-columns: repeat(4, 1fr); /* Changed to 4 columns */
+            gap: 20px;
             width: 90%;
-            max-width: 800px;
+            max-width: 900px;
         }
 
         .game-link {
-            font-size: 20px;
+            font-size: 18px; /* Slightly smaller font for more buttons */
             color: #fff;
             background-color: #e74c3c;
             padding: 10px;
@@ -183,26 +184,19 @@
                 background-color: #ff5e4d;
             }
 
-        @media (max-width: 768px) {
+        @media (max-width: 900px) {
             .game-selection {
                 grid-template-columns: repeat(2, 1fr);
-                gap: 20px;
-                width: 80%;
-            }
-
-            h1 {
-                font-size: 36px;
-            }
-
-            .nav-btn {
-                font-size: 14px;
-                padding: 8px 15px;
             }
         }
 
         @media (max-width: 480px) {
             .game-selection {
                 grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 36px;
             }
         }
     </style>
@@ -221,6 +215,7 @@
         <a href="doom.html" class="game-link">Pixel Doom</a>
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
+        <a href="pong.html" class="game-link">Pong</a>
     </div>
 
     <script>
@@ -228,7 +223,6 @@
 
         async function checkLoginStatus() {
             try {
-                // This line was fixed to use the full URL
                 const response = await fetch(window.location.origin + '/api/session-status');
                 const data = await response.json();
 
@@ -252,7 +246,6 @@
 
         async function logout() {
             try {
-                // This line was fixed to use the full URL
                 await fetch(window.location.origin + '/logout');
                 window.location.reload();
             } catch (error) {
