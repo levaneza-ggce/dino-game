@@ -237,6 +237,10 @@
                 messageElement.style.color = response.ok ? '#2ecc71' : '#e74c3c';
                 if (response.ok) {
                     passwordForm.reset();
+                    // **NEW: Redirect to main page after successful password change**
+                    setTimeout(() => {
+                        window.location.href = window.location.origin + '/';
+                    }, 1500); // Wait 1.5 seconds
                 }
             } catch (error) {
                 messageElement.textContent = 'An error occurred.';
