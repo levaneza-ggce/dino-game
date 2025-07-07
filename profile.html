@@ -11,53 +11,15 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
             margin: 0;
+            padding: 40px 0;
             background-color: #1a1a1a;
             color: #fff;
             font-family: 'Press Start 2P', cursive;
             text-align: center;
             position: relative;
         }
-
-        .profile-container {
-            background-color: #2c3e50;
-            padding: 40px;
-            border-radius: 10px;
-            border: 3px solid #00ffff;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-            width: 90%;
-            max-width: 500px;
-        }
-
-        h1, h2 {
-            color: #fff;
-        }
-
-        h1 {
-            font-size: 28px;
-            margin-bottom: 30px;
-        }
-
-        h2 {
-            font-size: 20px;
-            margin-top: 40px;
-            margin-bottom: 20px;
-            border-top: 2px solid #00ffff;
-            padding-top: 20px;
-        }
-
-        .info-group {
-            margin-bottom: 25px;
-            text-align: left;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-
-            .info-group span {
-                color: #00ffff;
-                margin-right: 15px;
-            }
 
         .back-button {
             position: absolute;
@@ -76,6 +38,48 @@
 
             .back-button:hover {
                 background-color: rgba(0, 255, 255, 0.2);
+            }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+        }
+
+        .profile-section {
+            background-color: #2c3e50;
+            padding: 30px 40px;
+            border-radius: 10px;
+            border: 3px solid #00ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+            margin-bottom: 30px;
+        }
+
+        h1, h2 {
+            color: #fff;
+            margin-top: 0;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .info-group {
+            margin-bottom: 25px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+            .info-group span {
+                color: #00ffff;
+                margin-right: 15px;
             }
 
         .input-group {
@@ -136,12 +140,41 @@
 </head>
 <body>
     <a href="index.html" class="back-button">← Menu</a>
-    <div class="profile-container" id="profile-box">
-        <h1>Loading Profile...</h1>
+    <div class="container">
+        <!-- Profile Details Section -->
+        <div class="profile-section" id="profile-details">
+            <h1>Your Profile</h1>
+            <div id="profile-info">
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Security Section -->
+        <div class="profile-section" id="security-details">
+            <h2>Security</h2>
+            <form id="password-form">
+                <div class="input-group">
+                    <label for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" required>
+                </div>
+                <div class="input-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirmNewPassword">Confirm New Password</label>
+                    <input type="password" id="confirmNewPassword" required>
+                </div>
+                <button type="submit" class="action-btn change-pass-btn">Update Password</button>
+            </form>
+            <div id="message"></div>
+        </div>
     </div>
 
     <script>
-        const profileBox = document.getElementById('profile-box');
+        const profileInfoDiv = document.getElementById('profile-info');
+        const passwordForm = document.getElementById('password-form');
+        const messageElement = document.getElementById('message');
 
         async function fetchProfile() {
             try {
@@ -152,10 +185,8 @@
                 }
                 const data = await response.json();
                 if (data.user) {
-                    // FIX: Use a more reliable way to format the date
                     const joinDate = new Date(data.user.joined).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                    profileBox.innerHTML = `
-                            <h1>Your Profile</h1>
+                    profileInfoDiv.innerHTML = `
                             <div class="info-group">
                                 <span>Name:</span> ${data.user.name}
                             </div>
@@ -165,36 +196,16 @@
                             <div class="info-group">
                                 <span>Member Since:</span> ${joinDate}
                             </div>
-
-                            <h2>Change Password</h2>
-                            <form id="password-form">
-                                <div class="input-group">
-                                    <label for="currentPassword">Current Password</label>
-                                    <input type="password" id="currentPassword" required>
-                                </div>
-                                <div class="input-group">
-                                    <label for="newPassword">New Password</label>
-                                    <input type="password" id="newPassword" required>
-                                </div>
-                                <div class="input-group">
-                                    <label for="confirmNewPassword">Confirm New Password</label>
-                                    <input type="password" id="confirmNewPassword" required>
-                                </div>
-                                <button type="submit" class="action-btn change-pass-btn">Update Password</button>
-                            </form>
-                            <div id="message"></div>
                         `;
-                    document.getElementById('password-form').addEventListener('submit', handleChangePassword);
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
-                profileBox.innerHTML = '<h1>Error loading profile.</h1>';
+                profileInfoDiv.innerHTML = '<p>Error loading profile.</p>';
             }
         }
 
         async function handleChangePassword(e) {
             e.preventDefault();
-            const messageElement = document.getElementById('message');
             const newPassword = document.getElementById('newPassword').value;
             const confirmNewPassword = document.getElementById('confirmNewPassword').value;
 
@@ -213,7 +224,6 @@
             messageElement.style.color = '#fff';
 
             try {
-                // FIX: Use the full URL for the fetch request
                 const response = await fetch(window.location.origin + '/api/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -223,7 +233,7 @@
                 messageElement.textContent = result.message;
                 messageElement.style.color = response.ok ? '#2ecc71' : '#e74c3c';
                 if (response.ok) {
-                    document.getElementById('password-form').reset();
+                    passwordForm.reset();
                 }
             } catch (error) {
                 messageElement.textContent = 'An error occurred.';
@@ -232,6 +242,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', fetchProfile);
+        passwordForm.addEventListener('submit', handleChangePassword);
     </script>
 </body>
 </html>
