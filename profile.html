@@ -113,7 +113,7 @@
             font-family: 'Press Start 2P', cursive;
             font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s;
         }
 
         .change-pass-btn {
@@ -156,6 +156,34 @@
         #pfp-upload-form {
             flex-grow: 1;
         }
+
+        .upload-btn {
+            background-color: #3498db;
+            border: 3px solid #2980b9;
+            box-shadow: 0 5px 0 #2980b9;
+        }
+
+            .upload-btn.uploading {
+                background-color: #f1c40f; /* Yellow */
+                border-color: #f39c12;
+                box-shadow: 0 5px 0 #f39c12;
+            }
+
+            .upload-btn.success {
+                background-color: #2ecc71; /* Green */
+                border-color: #27ae60;
+                box-shadow: 0 5px 0 #27ae60;
+            }
+
+            .upload-btn.failed {
+                background-color: #e74c3c; /* Red */
+                border-color: #c0392b;
+                box-shadow: 0 5px 0 #c0392b;
+            }
+
+            .upload-btn:active {
+                transform: translateY(3px);
+            }
     </style>
 </head>
 <body>
@@ -212,7 +240,7 @@
                                         <label for="pfp-input">New Picture</label>
                                         <input type="file" id="pfp-input" name="pfp" accept="image/*" required>
                                     </div>
-                                    <button type="submit" class="action-btn">Upload</button>
+                                    <button type="submit" class="action-btn upload-btn">Upload</button>
                                 </form>
                             </div>
                             <div class="info-group">
@@ -238,27 +266,37 @@
 
         async function handlePfpUpload(e) {
             e.preventDefault();
+            const uploadBtn = e.target.querySelector('button');
             const formData = new FormData(e.target);
-            messageElement.textContent = 'Uploading...';
-            messageElement.style.color = '#fff';
+
+            uploadBtn.textContent = 'Uploading...';
+            uploadBtn.className = 'action-btn upload-btn uploading';
+            uploadBtn.disabled = true;
 
             try {
-                // **FIX: Use the full URL for the fetch request**
                 const response = await fetch(window.location.origin + '/api/upload-profile-picture', {
                     method: 'POST',
                     body: formData
                 });
                 const result = await response.json();
-                messageElement.textContent = result.message;
+
                 if (response.ok) {
-                    document.getElementById('profile-pic').src = result.filePath + '?' + new Date().getTime(); // Add timestamp to bust cache
-                    messageElement.style.color = '#2ecc71';
+                    document.getElementById('profile-pic').src = result.filePath + '?' + new Date().getTime();
+                    uploadBtn.textContent = 'Success!';
+                    uploadBtn.className = 'action-btn upload-btn success';
                 } else {
-                    messageElement.style.color = '#e74c3c';
+                    uploadBtn.textContent = 'Failed';
+                    uploadBtn.className = 'action-btn upload-btn failed';
                 }
             } catch (error) {
-                messageElement.textContent = 'Upload failed.';
-                messageElement.style.color = '#e74c3c';
+                uploadBtn.textContent = 'Failed';
+                uploadBtn.className = 'action-btn upload-btn failed';
+            } finally {
+                setTimeout(() => {
+                    uploadBtn.textContent = 'Upload';
+                    uploadBtn.className = 'action-btn upload-btn';
+                    uploadBtn.disabled = false;
+                }, 2000); // Reset button after 2 seconds
             }
         }
 
@@ -292,6 +330,9 @@
                 messageElement.style.color = response.ok ? '#2ecc71' : '#e74c3c';
                 if (response.ok) {
                     passwordForm.reset();
+                    setTimeout(() => {
+                        window.location.href = window.location.origin + '/';
+                    }, 1500);
                 }
             } catch (error) {
                 messageElement.textContent = 'An error occurred.';
