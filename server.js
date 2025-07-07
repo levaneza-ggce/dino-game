@@ -22,6 +22,7 @@
     
     // --- Session Middleware with Enhanced Security ---
     const isProduction = process.env.NODE_ENV === 'production';
+    app.set('trust proxy', 1); // Trust first proxy, needed for secure cookies if behind Nginx
 
     app.use(session({
         store: new pgSession({
@@ -33,12 +34,28 @@
         saveUninitialized: false,
         rolling: true,
         cookie: { 
-            maxAge: 15 * 60 * 1000, // 15 minutes
-            httpOnly: true, // Prevents client-side JS from accessing the cookie
-            secure: isProduction, // **SECURITY FIX: Ensures cookie is sent only over HTTPS**
-            sameSite: 'strict' // **SECURITY FIX: Mitigates CSRF attacks**
+            maxAge: 15 * 60 * 1000,
+            httpOnly: true,
+            secure: isProduction,
+            sameSite: 'strict'
         }
     }));
+
+    // --- NEW: Session Hijacking Prevention Middleware ---
+    app.use((req, res, next) => {
+        if (req.session.user) {
+            // Check if the IP and User-Agent match what's stored in the session
+            if (req.session.ip !== req.ip || req.session.userAgent !== req.headers['user-agent']) {
+                // If they don't match, destroy the session and log the user out
+                console.warn(`Potential session hijacking attempt for user ${req.session.user.email}.`);
+                req.session.destroy();
+                res.clearCookie('connect.sid');
+                return res.status(401).json({ message: 'Invalid session.' });
+            }
+        }
+        next();
+    });
+
 
     // --- Create Database Tables ---
     const createTables = async () => {
@@ -90,7 +107,10 @@
             const user = rows[0];
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
+                // *** BIND SESSION ON LOGIN ***
                 req.session.user = { id: user.id, name: user.full_name, email: user.email, joined: user.created_at };
+                req.session.ip = req.ip; // Store IP address
+                req.session.userAgent = req.headers['user-agent']; // Store User-Agent
                 res.status(200).json({ message: `Welcome back, ${user.full_name}!` });
             } else {
                 res.status(401).json({ message: 'Invalid credentials.' });
