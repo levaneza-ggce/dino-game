@@ -136,20 +136,38 @@
             font-size: 14px;
             height: 20px;
         }
+
+        /* Profile Picture Styles */
+        .pfp-container {
+            display: flex;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        #profile-pic {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 3px solid #00ffff;
+            object-fit: cover;
+        }
+
+        #pfp-upload-form {
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
     <a href="index.html" class="back-button">← Menu</a>
     <div class="container">
-        <!-- Profile Details Section -->
         <div class="profile-section" id="profile-details">
             <h1>Your Profile</h1>
-            <div id="profile-info">
+            <div id="profile-content">
                 <p>Loading...</p>
             </div>
         </div>
 
-        <!-- Security Section -->
         <div class="profile-section" id="security-details">
             <h2>Security</h2>
             <form id="password-form">
@@ -172,7 +190,7 @@
     </div>
 
     <script>
-        const profileInfoDiv = document.getElementById('profile-info');
+        const profileContentDiv = document.getElementById('profile-content');
         const passwordForm = document.getElementById('password-form');
         const messageElement = document.getElementById('message');
 
@@ -186,7 +204,17 @@
                 const data = await response.json();
                 if (data.user) {
                     const joinDate = new Date(data.user.joined).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-                    profileInfoDiv.innerHTML = `
+                    profileContentDiv.innerHTML = `
+                            <div class="pfp-container">
+                                <img id="profile-pic" src="${data.user.pfp || '/default-pfp.png'}" alt="Profile Picture">
+                                <form id="pfp-upload-form">
+                                    <div class="input-group">
+                                        <label for="pfp-input">New Picture</label>
+                                        <input type="file" id="pfp-input" name="pfp" accept="image/*" required>
+                                    </div>
+                                    <button type="submit" class="action-btn">Upload</button>
+                                </form>
+                            </div>
                             <div class="info-group">
                                 <span>Name:</span> ${data.user.name}
                             </div>
@@ -200,10 +228,36 @@
                                 <span>Last Login IP:</span> ${data.user.ip}
                             </div>
                         `;
+                    document.getElementById('pfp-upload-form').addEventListener('submit', handlePfpUpload);
                 }
             } catch (error) {
                 console.error('Error fetching profile:', error);
-                profileInfoDiv.innerHTML = '<p>Error loading profile.</p>';
+                profileContentDiv.innerHTML = '<p>Error loading profile.</p>';
+            }
+        }
+
+        async function handlePfpUpload(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            messageElement.textContent = 'Uploading...';
+            messageElement.style.color = '#fff';
+
+            try {
+                const response = await fetch('/api/upload-profile-picture', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                messageElement.textContent = result.message;
+                if (response.ok) {
+                    document.getElementById('profile-pic').src = result.filePath + '?' + new Date().getTime(); // Add timestamp to bust cache
+                    messageElement.style.color = '#2ecc71';
+                } else {
+                    messageElement.style.color = '#e74c3c';
+                }
+            } catch (error) {
+                messageElement.textContent = 'Upload failed.';
+                messageElement.style.color = '#e74c3c';
             }
         }
 
@@ -237,10 +291,6 @@
                 messageElement.style.color = response.ok ? '#2ecc71' : '#e74c3c';
                 if (response.ok) {
                     passwordForm.reset();
-                    // **NEW: Redirect to main page after successful password change**
-                    setTimeout(() => {
-                        window.location.href = window.location.origin + '/';
-                    }, 1500); // Wait 1.5 seconds
                 }
             } catch (error) {
                 messageElement.textContent = 'An error occurred.';

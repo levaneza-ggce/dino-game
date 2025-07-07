@@ -6,12 +6,32 @@
     const bcrypt = require('bcrypt');
     const session = require('express-session');
     const pgSession = require('connect-pg-simple')(session);
+    const multer = require('multer'); // For file uploads
+    const fs = require('fs'); // For creating directories
 
     const app = express();
     const port = 3000;
     const saltRounds = 10;
     
     app.set('trust proxy', 1);
+
+    // --- File Upload Setup ---
+    const uploadDir = 'uploads';
+    if (!fs.existsSync(uploadDir)){
+        fs.mkdirSync(uploadDir);
+    }
+    const storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            cb(null, uploadDir + '/')
+        },
+        filename: function (req, file, cb) {
+            // Create a unique filename to prevent conflicts
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+            cb(null, req.session.user.id + '-' + uniqueSuffix + path.extname(file.originalname))
+        }
+    });
+    const upload = multer({ storage: storage });
+
 
     // --- Database Connection ---
     const pool = new Pool({
@@ -53,9 +73,17 @@
         next();
     });
 
-    // --- Create Tables ---
+    // --- Create Database Tables ---
     const createTables = async () => {
-        const userTableQuery = `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, full_name VARCHAR(200), email VARCHAR(100) UNIQUE, password_hash VARCHAR(255), created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);`;
+        const userTableQuery = `
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY, 
+                full_name VARCHAR(200), 
+                email VARCHAR(100) UNIQUE, 
+                password_hash VARCHAR(255), 
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                profile_picture_url VARCHAR(255) DEFAULT '/default-pfp.png'
+            );`;
         const sessionTableQuery = `
             CREATE TABLE IF NOT EXISTS "user_sessions" (
               "sid" varchar NOT NULL COLLATE "default",
@@ -80,41 +108,14 @@
     // --- Middleware ---
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
-
-    // --- Password Validation Function ---
-    function validatePassword(password) {
-        const hasUpperCase = /[A-Z]/.test(password);
-        const hasNumber = /[0-9]/.test(password);
-        const isLongEnough = password.length >= 8;
-        
-        if (hasUpperCase && hasNumber && isLongEnough) {
-            return { isValid: true };
-        }
-        
-        // For detailed error messages (optional)
-        const errors = [];
-        if (!isLongEnough) errors.push("be at least 8 characters");
-        if (!hasUpperCase) errors.push("contain an uppercase letter");
-        if (!hasNumber) errors.push("contain a number");
-
-        return { isValid: false, message: `Password must ${errors.join(', ')}.` };
-    }
-
+    app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
 
     // --- API Endpoints ---
     app.post('/register', async (req, res) => {
         const { fullName, email, password } = req.body;
-        
-        if (!fullName || !email || !password) {
-            return res.status(400).json({ message: 'All fields are required.' });
-        }
-
-        // **FIX: Use the robust validation function**
+        if (!fullName || !email || !password) return res.status(400).json({ message: 'All fields are required.' });
         const passwordValidation = validatePassword(password);
-        if (!passwordValidation.isValid) {
-            return res.status(400).json({ message: passwordValidation.message });
-        }
-
+        if (!passwordValidation.isValid) return res.status(400).json({ message: passwordValidation.message });
         try {
             const passwordHash = await bcrypt.hash(password, saltRounds);
             await pool.query('INSERT INTO users(full_name, email, password_hash) VALUES($1, $2, $3)', [fullName, email, passwordHash]);
@@ -133,7 +134,7 @@
             const user = rows[0];
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                req.session.user = { id: user.id, name: user.full_name, email: user.email, joined: user.created_at };
+                req.session.user = { id: user.id, name: user.full_name, email: user.email, joined: user.created_at, pfp: user.profile_picture_url };
                 req.session.ip = req.ip; 
                 req.session.userAgent = req.headers['user-agent'];
                 res.status(200).json({ message: `Welcome back, ${user.full_name}!` });
@@ -166,13 +167,8 @@
         if (!req.session.user) return res.status(401).json({ message: 'Not authenticated.' });
         const { currentPassword, newPassword } = req.body;
         if (!currentPassword || !newPassword) return res.status(400).json({ message: 'All password fields are required.' });
-        
-        // Also validate the new password here
         const passwordValidation = validatePassword(newPassword);
-        if (!passwordValidation.isValid) {
-            return res.status(400).json({ message: passwordValidation.message });
-        }
-
+        if (!passwordValidation.isValid) return res.status(400).json({ message: passwordValidation.message });
         try {
             const userId = req.session.user.id;
             const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
@@ -184,6 +180,31 @@
             res.status(200).json({ message: 'Password updated successfully!' });
         } catch (err) {
             res.status(500).json({ message: 'An error occurred.' });
+        }
+    });
+
+    // --- NEW: Profile Picture Upload Endpoint ---
+    app.post('/api/upload-profile-picture', upload.single('pfp'), async (req, res) => {
+        if (!req.session.user) {
+            return res.status(401).json({ message: 'Not authenticated.' });
+        }
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded.' });
+        }
+
+        try {
+            const filePath = `/${uploadDir}/${req.file.filename}`;
+            const userId = req.session.user.id;
+
+            await pool.query('UPDATE users SET profile_picture_url = $1 WHERE id = $2', [filePath, userId]);
+            
+            // Update the session with the new picture URL
+            req.session.user.pfp = filePath;
+
+            res.status(200).json({ message: 'Profile picture updated!', filePath: filePath });
+        } catch (error) {
+            console.error('PFP upload error:', error);
+            res.status(500).json({ message: 'Error updating profile picture.' });
         }
     });
 
@@ -214,5 +235,17 @@
 
     // --- Static File Middleware (LAST) ---
     app.use(express.static(path.join(__dirname)));
+
+    function validatePassword(password) {
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const isLongEnough = password.length >= 8;
+        if (hasUpperCase && hasNumber && isLongEnough) return { isValid: true };
+        const errors = [];
+        if (!isLongEnough) errors.push("be at least 8 characters");
+        if (!hasUpperCase) errors.push("contain an uppercase letter");
+        if (!hasNumber) errors.push("contain a number");
+        return { isValid: false, message: `Password must ${errors.join(', ')}.` };
+    }
 
     app.listen(port, () => console.log(`Arcade backend listening on port ${port}`));
