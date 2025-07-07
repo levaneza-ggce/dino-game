@@ -152,7 +152,8 @@
                 }
                 const data = await response.json();
                 if (data.user) {
-                    const joinDate = new Date(data.user.joined).toLocaleDateString();
+                    // FIX: Use a more reliable way to format the date
+                    const joinDate = new Date(data.user.joined).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
                     profileBox.innerHTML = `
                             <h1>Your Profile</h1>
                             <div class="info-group">
@@ -212,7 +213,8 @@
             messageElement.style.color = '#fff';
 
             try {
-                const response = await fetch('/api/change-password', {
+                // FIX: Use the full URL for the fetch request
+                const response = await fetch(window.location.origin + '/api/change-password', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
