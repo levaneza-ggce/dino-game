@@ -143,7 +143,8 @@
             messageElement.style.color = '#fff';
 
             try {
-                const response = await fetch('/login', {
+                // **FIX: Use the full URL for the fetch request**
+                const response = await fetch(window.location.origin + '/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -157,7 +158,6 @@
                     messageElement.textContent = result.message;
                     messageElement.style.color = '#2ecc71'; // Green
 
-                    // **FIX: Redirect to main page on successful login**
                     setTimeout(() => {
                         window.location.href = '/';
                     }, 1000); // Wait 1 second to show the success message
