@@ -79,14 +79,14 @@
 
         .game-selection {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* Changed to 4 columns */
+            grid-template-columns: repeat(4, 1fr);
             gap: 20px;
             width: 90%;
             max-width: 900px;
         }
 
         .game-link {
-            font-size: 18px; /* Slightly smaller font for more buttons */
+            font-size: 18px;
             color: #fff;
             background-color: #e74c3c;
             padding: 10px;
@@ -100,6 +100,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-direction: column; /* To stack icon and text */
         }
 
             .game-link:hover {
@@ -184,6 +185,78 @@
                 background-color: #ff5e4d;
             }
 
+        /* --- Gemini Feature Styles --- */
+        .generator-btn {
+            background-color: #9b59b6; /* Purple */
+            border-color: #8e44ad;
+            box-shadow: 0 5px 0 #8e44ad;
+        }
+
+            .generator-btn:hover {
+                background-color: #af7ac5;
+            }
+
+            .generator-btn:active {
+                box-shadow: 0 2px 0 #8e44ad;
+            }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+            .modal-overlay.visible {
+                opacity: 1;
+                visibility: visible;
+            }
+
+        .modal-content {
+            background-color: #2c3e50;
+            padding: 30px;
+            border-radius: 10px;
+            border: 3px solid #00ffff;
+            width: 90%;
+            max-width: 500px;
+            text-align: left;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .modal-content p {
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .generate-idea-btn {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+        }
+
         @media (max-width: 900px) {
             .game-selection {
                 grid-template-columns: repeat(2, 1fr);
@@ -203,7 +276,7 @@
 </head>
 <body>
     <div class="top-right-nav" id="nav-container">
-        <!-- This will be populated by JavaScript -->
+        <!-- Populated by JavaScript -->
     </div>
 
     <h1>ARCADE</h1>
@@ -216,34 +289,47 @@
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
         <a href="pong.html" class="game-link">Pong</a>
+        <button id="idea-generator-btn" class="game-link generator-btn">
+            <span>✨</span>
+            <span>Game Idea</span>
+        </button>
+    </div>
+
+    <!-- Gemini Modal -->
+    <div id="idea-modal" class="modal-overlay">
+        <div class="modal-content">
+            <span id="modal-close-btn" class="modal-close">&times;</span>
+            <h2>Game Idea Generator</h2>
+            <div id="idea-output">
+                <p>Click the button to generate a new retro game concept!</p>
+            </div>
+            <button id="generate-idea-btn" class="nav-btn generator-btn">✨ Generate New Idea</button>
+        </div>
     </div>
 
     <script>
         const navContainer = document.getElementById('nav-container');
+        const ideaGeneratorBtn = document.getElementById('idea-generator-btn');
+        const ideaModal = document.getElementById('idea-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const generateIdeaBtn = document.getElementById('generate-idea-btn');
+        const ideaOutput = document.getElementById('idea-output');
 
+        // --- User Session Logic ---
         async function checkLoginStatus() {
             try {
                 const response = await fetch(window.location.origin + '/api/session-status');
                 const data = await response.json();
-
                 if (data.loggedIn) {
-                    navContainer.innerHTML = `
-                        <span class="welcome-msg">Welcome, ${data.user.name.split(' ')[0]}!</span>
-                        <a href="profile.html" class="nav-btn profile-btn">Profile</a>
-                        <button id="logout-btn" class="nav-btn logout-btn">Logout</button>
-                    `;
+                    navContainer.innerHTML = `<span class="welcome-msg">Welcome, ${data.user.name.split(' ')[0]}!</span><a href="profile.html" class="nav-btn profile-btn">Profile</a><button id="logout-btn" class="nav-btn logout-btn">Logout</button>`;
                     document.getElementById('logout-btn').addEventListener('click', logout);
                 } else {
-                    navContainer.innerHTML = `
-                        <a href="login.html" class="nav-btn login-btn">Login</a>
-                        <a href="registration.html" class="nav-btn register-btn">Register</a>
-                    `;
+                    navContainer.innerHTML = `<a href="login.html" class="nav-btn login-btn">Login</a><a href="registration.html" class="nav-btn register-btn">Register</a>`;
                 }
             } catch (error) {
                 console.error('Error checking session status:', error);
             }
         }
-
         async function logout() {
             try {
                 await fetch(window.location.origin + '/logout');
@@ -252,8 +338,56 @@
                 console.error('Error during logout:', error);
             }
         }
-
         document.addEventListener('DOMContentLoaded', checkLoginStatus);
+
+        // --- Gemini Feature Logic ---
+        ideaGeneratorBtn.addEventListener('click', () => ideaModal.classList.add('visible'));
+        modalCloseBtn.addEventListener('click', () => ideaModal.classList.remove('visible'));
+        ideaModal.addEventListener('click', (e) => {
+            if (e.target === ideaModal) {
+                ideaModal.classList.remove('visible');
+            }
+        });
+
+        generateIdeaBtn.addEventListener('click', async () => {
+            ideaOutput.innerHTML = '<p>Generating idea...</p>';
+            generateIdeaBtn.disabled = true;
+
+            const prompt = "Generate a creative concept for a new retro-style arcade game. Provide a catchy title, a one-sentence description, and a short list of core gameplay mechanics. Format the response as simple HTML with a <h3> for the title, a <p> for the description, and a <ul> with <li> items for the mechanics.";
+
+            try {
+                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+                const payload = { contents: chatHistory };
+                const apiKey = ""; // API key is handled by the environment
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
+                    const text = result.candidates[0].content.parts[0].text;
+                    ideaOutput.innerHTML = text;
+                } else {
+                    throw new Error("Invalid response structure from API.");
+                }
+
+            } catch (error) {
+                console.error('Gemini API Error:', error);
+                ideaOutput.innerHTML = '<p>Sorry, could not generate an idea right now. Please try again later.</p>';
+            } finally {
+                generateIdeaBtn.disabled = false;
+            }
+        });
+
     </script>
 </body>
 </html>
