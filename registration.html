@@ -107,6 +107,23 @@
             height: 20px;
             color: #e74c3c; /* Red for errors */
         }
+        /* Password requirements styles */
+        #password-requirements {
+            font-size: 12px;
+            text-align: left;
+            margin-top: -10px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #95a5a6;
+        }
+
+            #password-requirements .valid {
+                color: #2ecc71; /* Green */
+            }
+
+            #password-requirements .invalid {
+                color: #e74c3c; /* Red */
+            }
     </style>
 </head>
 <body>
@@ -126,6 +143,11 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
+            <div id="password-requirements">
+                <div id="length" class="invalid">At least 8 characters</div>
+                <div id="uppercase" class="invalid">At least one uppercase letter</div>
+                <div id="number" class="invalid">At least one number</div>
+            </div>
             <div class="input-group">
                 <label for="confirmPassword">Confirm Password</label>
                 <input type="password" id="confirmPassword" name="confirmPassword" required>
@@ -138,6 +160,34 @@
     <script>
         const registrationForm = document.getElementById('registration-form');
         const messageElement = document.getElementById('message');
+        const passwordInput = document.getElementById('password');
+        const lengthReq = document.getElementById('length');
+        const uppercaseReq = document.getElementById('uppercase');
+        const numberReq = document.getElementById('number');
+
+        // --- Real-time password validation ---
+        passwordInput.addEventListener('keyup', () => {
+            const pass = passwordInput.value;
+            // Length check
+            if (pass.length >= 8) {
+                lengthReq.className = 'valid';
+            } else {
+                lengthReq.className = 'invalid';
+            }
+            // Uppercase check
+            if (/[A-Z]/.test(pass)) {
+                uppercaseReq.className = 'valid';
+            } else {
+                uppercaseReq.className = 'invalid';
+            }
+            // Number check
+            if (/[0-9]/.test(pass)) {
+                numberReq.className = 'valid';
+            } else {
+                numberReq.className = 'invalid';
+            }
+        });
+
 
         registrationForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -152,6 +202,10 @@
                 messageElement.textContent = 'Passwords do not match!';
                 return;
             }
+            if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+                messageElement.textContent = 'Password does not meet requirements.';
+                return;
+            }
 
             const formData = { fullName, email, password };
 
@@ -159,7 +213,7 @@
             messageElement.style.color = '#fff';
 
             try {
-                const response = await fetch('/register', {
+                const response = await fetch(window.location.origin + '/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

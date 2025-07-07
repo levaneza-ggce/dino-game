@@ -11,8 +11,7 @@
     const port = 3000;
     const saltRounds = 10;
     
-    // **FIX: Trust the Nginx reverse proxy to get the correct IP address**
-    app.set('trust proxy', 1); 
+    app.set('trust proxy', 1);
 
     // --- Database Connection ---
     const pool = new Pool({
@@ -23,7 +22,7 @@
         port: process.env.DB_PORT,
     });
     
-    // --- Session Middleware with Enhanced Security ---
+    // --- Session Middleware ---
     const isProduction = process.env.NODE_ENV === 'production';
     app.use(session({
         store: new pgSession({
@@ -46,7 +45,6 @@
     app.use((req, res, next) => {
         if (req.session.user) {
             if (req.session.ip !== req.ip || req.session.userAgent !== req.headers['user-agent']) {
-                console.warn(`Potential session hijacking attempt for user ${req.session.user.email}.`);
                 req.session.destroy();
                 res.clearCookie('connect.sid');
                 return res.status(401).json({ message: 'Invalid session.' });
@@ -55,7 +53,7 @@
         next();
     });
 
-    // --- Create Database Tables ---
+    // --- Create Tables ---
     const createTables = async () => {
         const userTableQuery = `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, full_name VARCHAR(200), email VARCHAR(100) UNIQUE, password_hash VARCHAR(255), created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);`;
         const sessionTableQuery = `
@@ -86,7 +84,15 @@
     // --- API Endpoints ---
     app.post('/register', async (req, res) => {
         const { fullName, email, password } = req.body;
-        if (!fullName || !email || !password) return res.status(400).json({ message: 'All fields are required.' });
+        
+        // --- NEW: Backend Password Validation ---
+        if (!fullName || !email || !password) {
+            return res.status(400).json({ message: 'All fields are required.' });
+        }
+        if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
+            return res.status(400).json({ message: 'Password does not meet complexity requirements.' });
+        }
+
         try {
             const passwordHash = await bcrypt.hash(password, saltRounds);
             await pool.query('INSERT INTO users(full_name, email, password_hash) VALUES($1, $2, $3)', [fullName, email, passwordHash]);
@@ -130,35 +136,25 @@
 
     app.get('/api/profile', (req, res) => {
         if (!req.session.user) return res.status(401).json({ message: 'Not authenticated' });
-        const profileData = {
-            ...req.session.user,
-            ip: req.session.ip 
-        };
+        const profileData = { ...req.session.user, ip: req.session.ip };
         res.json({ user: profileData });
     });
     
     app.post('/api/change-password', async (req, res) => {
-        if (!req.session.user) {
-            return res.status(401).json({ message: 'Not authenticated.' });
-        }
+        if (!req.session.user) return res.status(401).json({ message: 'Not authenticated.' });
         const { currentPassword, newPassword } = req.body;
-        if (!currentPassword || !newPassword) {
-            return res.status(400).json({ message: 'All password fields are required.' });
-        }
+        if (!currentPassword || !newPassword) return res.status(400).json({ message: 'All password fields are required.' });
         try {
             const userId = req.session.user.id;
             const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
             const user = rows[0];
             const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
-            if (!isMatch) {
-                return res.status(401).json({ message: 'Incorrect current password.' });
-            }
+            if (!isMatch) return res.status(401).json({ message: 'Incorrect current password.' });
             const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
             await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, userId]);
             res.status(200).json({ message: 'Password updated successfully!' });
         } catch (err) {
-            console.error('Password change error:', err);
-            res.status(500).json({ message: 'An error occurred while changing password.' });
+            res.status(500).json({ message: 'An error occurred.' });
         }
     });
 
@@ -183,7 +179,6 @@
                 throw new Error("Invalid response structure from API.");
             }
         } catch (error) {
-            console.error('Error in /api/generate-idea:', error);
             res.status(500).json({ message: 'Failed to generate idea.' });
         }
     });
