@@ -1,7 +1,7 @@
     require('dotenv').config(); 
     const express = require('express');
-    const http = require('http'); // Required for Socket.IO
-    const { Server } = require("socket.io"); // Required for Socket.IO
+    const http = require('http');
+    const { Server } = require("socket.io");
     const bodyParser = require('body-parser');
     const { Pool } = require('pg');
     const path = require('path');
@@ -12,8 +12,8 @@
     const fs = require('fs');
 
     const app = express();
-    const server = http.createServer(app); // Create an HTTP server from the Express app
-    const io = new Server(server); // Attach Socket.IO to the server
+    const server = http.createServer(app);
+    const io = new Server(server);
 
     const port = 3000;
     const saltRounds = 10;
@@ -60,7 +60,7 @@
         }
     });
     app.use(sessionMiddleware);
-    io.engine.use(sessionMiddleware); // Share session with Socket.IO
+    io.engine.use(sessionMiddleware);
 
     // --- Session Hijacking Prevention Middleware ---
     app.use((req, res, next) => {
@@ -87,6 +87,7 @@
     };
     createTables();
 
+
     // --- Middleware ---
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
@@ -96,44 +97,29 @@
     // (All your existing API endpoints like /register, /login, etc. go here)
     // ...
 
-    // --- NEW: Socket.IO Chat Logic ---
+    // --- Socket.IO Chat Logic ---
     io.on('connection', (socket) => {
         const session = socket.request.session;
         if (!session.user) {
-            console.log('A guest tried to connect to chat.');
             socket.disconnect();
             return;
         }
-        
-        console.log(`${session.user.name} connected to chat.`);
-
-        // Broadcast a 'user connected' message
-        socket.broadcast.emit('chat message', {
-            user: 'System',
-            text: `${session.user.name} has joined the chat.`
-        });
-
+        socket.broadcast.emit('chat message', { user: 'System', text: `${session.user.name} has joined the chat.` });
         socket.on('chat message', (msg) => {
-            // Broadcast the message to everyone, including the sender
-            io.emit('chat message', {
-                user: session.user.name,
-                text: msg
-            });
+            io.emit('chat message', { user: session.user.name, text: msg });
         });
-
         socket.on('disconnect', () => {
-            console.log(`${session.user.name} disconnected from chat.`);
-            // Broadcast a 'user disconnected' message
-            io.emit('chat message', {
-                user: 'System',
-                text: `${session.user.name} has left the chat.`
-            });
+            io.emit('chat message', { user: 'System', text: `${session.user.name} has left the chat.` });
         });
     });
 
-
-    // --- Static File Middleware (LAST) ---
+    // --- Static File Middleware ---
     app.use(express.static(path.join(__dirname)));
+
+    // --- NEW: 404 Catch-all Route (Must be LAST) ---
+    app.use((req, res, next) => {
+        res.status(404).sendFile(path.join(__dirname, '404.html'));
+    });
 
     // --- Start the Server ---
     server.listen(port, () => {
