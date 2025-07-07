@@ -11,7 +11,8 @@
     const port = 3000;
     const saltRounds = 10;
     
-    app.set('trust proxy', 1); // Trust first proxy, needed for secure cookies if behind Nginx
+    // **FIX: Trust the Nginx reverse proxy to get the correct IP address**
+    app.set('trust proxy', 1); 
 
     // --- Database Connection ---
     const pool = new Pool({
@@ -129,13 +130,10 @@
 
     app.get('/api/profile', (req, res) => {
         if (!req.session.user) return res.status(401).json({ message: 'Not authenticated' });
-        
-        // **UPDATE:** Combine user data and session IP for the response
         const profileData = {
             ...req.session.user,
             ip: req.session.ip 
         };
-        
         res.json({ user: profileData });
     });
     
