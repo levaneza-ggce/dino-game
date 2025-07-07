@@ -29,10 +29,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-super-secret-key',
     resave: false,
     saveUninitialized: false,
-    rolling: true, // <-- This resets the expiration date on every request
+    rolling: true,
     cookie: {
-        maxAge: 15 * 60 * 1000, // <-- Set to 15 minutes
-        httpOnly: true // Good security practice
+        maxAge: 15 * 60 * 1000,
+        httpOnly: true
     }
 }));
 
@@ -62,8 +62,7 @@ app.post('/register', async (req, res) => {
     if (!fullName || !email || !password) return res.status(400).json({ message: 'All fields are required.' });
     try {
         const passwordHash = await bcrypt.hash(password, saltRounds);
-        const query = 'INSERT INTO users(full_name, email, password_hash) VALUES($1, $2, $3) RETURNING *';
-        await pool.query(query, [fullName, email, passwordHash]);
+        await pool.query('INSERT INTO users(full_name, email, password_hash) VALUES($1, $2, $3)', [fullName, email, passwordHash]);
         res.status(201).json({ message: 'Registration successful!' });
     } catch (err) {
         res.status(err.code === '23505' ? 409 : 500).json({ message: err.code === '23505' ? 'Email already exists.' : 'An error occurred.' });
@@ -79,7 +78,7 @@ app.post('/login', async (req, res) => {
         const user = rows[0];
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (isMatch) {
-            req.session.user = { id: user.id, name: user.full_name, email: user.email };
+            req.session.user = { id: user.id, name: user.full_name, email: user.email, joined: user.created_at };
             res.status(200).json({ message: `Welcome back, ${user.full_name}!` });
         } else {
             res.status(401).json({ message: 'Invalid credentials.' });
@@ -103,6 +102,38 @@ app.get('/api/session-status', (req, res) => {
 app.get('/api/profile', (req, res) => {
     if (!req.session.user) return res.status(401).json({ message: 'Not authenticated' });
     res.json({ user: req.session.user });
+});
+
+// --- NEW: Change Password Endpoint ---
+app.post('/api/change-password', async (req, res) => {
+    if (!req.session.user) {
+        return res.status(401).json({ message: 'Not authenticated.' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: 'All password fields are required.' });
+    }
+
+    try {
+        const userId = req.session.user.id;
+        const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
+        const user = rows[0];
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Incorrect current password.' });
+        }
+
+        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+        await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, userId]);
+
+        res.status(200).json({ message: 'Password updated successfully!' });
+
+    } catch (err) {
+        console.error('Password change error:', err);
+        res.status(500).json({ message: 'An error occurred while changing password.' });
+    }
 });
 
 app.post('/api/generate-idea', async (req, res) => {
