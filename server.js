@@ -10,6 +10,8 @@
     const app = express();
     const port = 3000;
     const saltRounds = 10;
+    
+    app.set('trust proxy', 1); // Trust first proxy, needed for secure cookies if behind Nginx
 
     // --- Database Connection ---
     const pool = new Pool({
@@ -22,8 +24,6 @@
     
     // --- Session Middleware with Enhanced Security ---
     const isProduction = process.env.NODE_ENV === 'production';
-    app.set('trust proxy', 1); // Trust first proxy, needed for secure cookies if behind Nginx
-
     app.use(session({
         store: new pgSession({
             pool: pool,
@@ -41,12 +41,10 @@
         }
     }));
 
-    // --- NEW: Session Hijacking Prevention Middleware ---
+    // --- Session Hijacking Prevention Middleware ---
     app.use((req, res, next) => {
         if (req.session.user) {
-            // Check if the IP and User-Agent match what's stored in the session
             if (req.session.ip !== req.ip || req.session.userAgent !== req.headers['user-agent']) {
-                // If they don't match, destroy the session and log the user out
                 console.warn(`Potential session hijacking attempt for user ${req.session.user.email}.`);
                 req.session.destroy();
                 res.clearCookie('connect.sid');
@@ -55,7 +53,6 @@
         }
         next();
     });
-
 
     // --- Create Database Tables ---
     const createTables = async () => {
@@ -107,10 +104,9 @@
             const user = rows[0];
             const isMatch = await bcrypt.compare(password, user.password_hash);
             if (isMatch) {
-                // *** BIND SESSION ON LOGIN ***
                 req.session.user = { id: user.id, name: user.full_name, email: user.email, joined: user.created_at };
-                req.session.ip = req.ip; // Store IP address
-                req.session.userAgent = req.headers['user-agent']; // Store User-Agent
+                req.session.ip = req.ip; 
+                req.session.userAgent = req.headers['user-agent'];
                 res.status(200).json({ message: `Welcome back, ${user.full_name}!` });
             } else {
                 res.status(401).json({ message: 'Invalid credentials.' });
@@ -133,34 +129,35 @@
 
     app.get('/api/profile', (req, res) => {
         if (!req.session.user) return res.status(401).json({ message: 'Not authenticated' });
-        res.json({ user: req.session.user });
+        
+        // **UPDATE:** Combine user data and session IP for the response
+        const profileData = {
+            ...req.session.user,
+            ip: req.session.ip 
+        };
+        
+        res.json({ user: profileData });
     });
     
     app.post('/api/change-password', async (req, res) => {
         if (!req.session.user) {
             return res.status(401).json({ message: 'Not authenticated.' });
         }
-
         const { currentPassword, newPassword } = req.body;
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ message: 'All password fields are required.' });
         }
-
         try {
             const userId = req.session.user.id;
             const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
             const user = rows[0];
-
             const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
             if (!isMatch) {
                 return res.status(401).json({ message: 'Incorrect current password.' });
             }
-
             const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
             await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, userId]);
-
             res.status(200).json({ message: 'Password updated successfully!' });
-
         } catch (err) {
             console.error('Password change error:', err);
             res.status(500).json({ message: 'An error occurred while changing password.' });
@@ -174,18 +171,14 @@
             const payload = { contents: chatHistory };
             const apiKey = process.env.GEMINI_API_KEY || ""; 
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-            
             const apiResponse = await fetch(apiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-
             if (!apiResponse.ok) throw new Error(`API request failed: ${apiResponse.statusText}`);
-
             const result = await apiResponse.json();
             const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
             if (text) {
                 res.status(200).json({ idea: text });
             } else {
