@@ -36,10 +36,21 @@ app.use(session({
     }
 }));
 
-// --- Create Tables ---
+// --- Create Database Tables ---
 const createTables = async () => {
     const userTableQuery = `CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, full_name VARCHAR(200), email VARCHAR(100) UNIQUE, password_hash VARCHAR(255), created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP);`;
-    const sessionTableQuery = `CREATE TABLE IF NOT EXISTS "user_sessions" ("sid" varchar NOT NULL COLLATE "default", "sess" json NOT NULL, "expire" timestamp(6) NOT NULL) WITH (OIDS=FALSE); ALTER TABLE "user_sessions" ADD CONSTRAINT "session_pkey" PRIMARY KEY ("sid") NOT DEFERRABLE INITIALLY IMMEDIATE; CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "user_sessions" ("expire");`;
+
+    // **FIX: Define the primary key inside the CREATE TABLE statement**
+    const sessionTableQuery = `
+            CREATE TABLE IF NOT EXISTS "user_sessions" (
+              "sid" varchar NOT NULL COLLATE "default",
+              "sess" json NOT NULL,
+              "expire" timestamp(6) NOT NULL,
+              CONSTRAINT "session_pkey" PRIMARY KEY ("sid")
+            );
+            CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "user_sessions" ("expire");
+        `;
+
     try {
         await pool.query(userTableQuery);
         console.log('"users" table is ready.');
@@ -104,7 +115,6 @@ app.get('/api/profile', (req, res) => {
     res.json({ user: req.session.user });
 });
 
-// --- NEW: Change Password Endpoint ---
 app.post('/api/change-password', async (req, res) => {
     if (!req.session.user) {
         return res.status(401).json({ message: 'Not authenticated.' });
