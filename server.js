@@ -81,16 +81,38 @@
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({ extended: true }));
 
+    // --- Password Validation Function ---
+    function validatePassword(password) {
+        const hasUpperCase = /[A-Z]/.test(password);
+        const hasNumber = /[0-9]/.test(password);
+        const isLongEnough = password.length >= 8;
+        
+        if (hasUpperCase && hasNumber && isLongEnough) {
+            return { isValid: true };
+        }
+        
+        // For detailed error messages (optional)
+        const errors = [];
+        if (!isLongEnough) errors.push("be at least 8 characters");
+        if (!hasUpperCase) errors.push("contain an uppercase letter");
+        if (!hasNumber) errors.push("contain a number");
+
+        return { isValid: false, message: `Password must ${errors.join(', ')}.` };
+    }
+
+
     // --- API Endpoints ---
     app.post('/register', async (req, res) => {
         const { fullName, email, password } = req.body;
         
-        // --- NEW: Backend Password Validation ---
         if (!fullName || !email || !password) {
             return res.status(400).json({ message: 'All fields are required.' });
         }
-        if (password.length < 8 || !/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-            return res.status(400).json({ message: 'Password does not meet complexity requirements.' });
+
+        // **FIX: Use the robust validation function**
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({ message: passwordValidation.message });
         }
 
         try {
@@ -144,6 +166,13 @@
         if (!req.session.user) return res.status(401).json({ message: 'Not authenticated.' });
         const { currentPassword, newPassword } = req.body;
         if (!currentPassword || !newPassword) return res.status(400).json({ message: 'All password fields are required.' });
+        
+        // Also validate the new password here
+        const passwordValidation = validatePassword(newPassword);
+        if (!passwordValidation.isValid) {
+            return res.status(400).json({ message: passwordValidation.message });
+        }
+
         try {
             const userId = req.session.user.id;
             const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [userId]);
