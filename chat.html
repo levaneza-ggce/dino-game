@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcade Chat</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+            background-color: #1a1a1a;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            position: relative;
+        }
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            text-decoration: none;
+            font-size: 16px;
+            z-index: 100;
+        }
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            border-left: 3px solid #00ffff;
+            border-right: 3px solid #00ffff;
+        }
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+        #messages li {
+            padding: 8px 12px;
+            word-wrap: break-word;
+        }
+        #messages li:nth-child(odd) {
+            background: #2c3e50;
+        }
+        .system-message {
+            color: #95a5a6;
+            font-style: italic;
+        }
+        #form {
+            display: flex;
+            padding: 10px;
+            background: #2c3e50;
+            border-top: 3px solid #00ffff;
+        }
+        #input {
+            border: none;
+            padding: 15px;
+            flex-grow: 1;
+            border-radius: 5px;
+            margin-right: 10px;
+            font-family: 'Press Start 2P', cursive;
+            background-color: #1a1a1a;
+            color: #fff;
+        }
+        #form button {
+            background: #e74c3c;
+            border: none;
+            padding: 15px 25px;
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-button">← Menu</a>
+    <div class="chat-container">
+        <ul id="messages"></ul>
+        <form id="form" action="">
+            <input id="input" autocomplete="off" placeholder="Type a message..." />
+            <button>Send</button>
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const messages = document.getElementById('messages');
+        const form = document.getElementById('form');
+        const input = document.getElementById('input');
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit('chat message', input.value);
+                input.value = '';
+            }
+        });
+
+        socket.on('chat message', function(msg) {
+            const item = document.createElement('li');
+            if (msg.user === 'System') {
+                item.className = 'system-message';
+                item.textContent = msg.text;
+            } else {
+                item.textContent = `${msg.user}: ${msg.text}`;
+            }
+            messages.appendChild(item);
+            messages.scrollTop = messages.scrollHeight;
+        });
+
+        // Check if user is logged in
+        fetch(window.location.origin + '/api/session-status')
+            .then(res => res.json())
+            .then(data => {
+                if (!data.loggedIn) {
+                    window.location.href = '/login.html';
+                }
+            });
+    </script>
+</body>
+</html>
