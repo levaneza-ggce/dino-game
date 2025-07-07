@@ -100,7 +100,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-direction: column; /* To stack icon and text */
+            flex-direction: column;
         }
 
             .game-link:hover {
@@ -353,18 +353,9 @@
             ideaOutput.innerHTML = '<p>Generating idea...</p>';
             generateIdeaBtn.disabled = true;
 
-            const prompt = "Generate a creative concept for a new retro-style arcade game. Provide a catchy title, a one-sentence description, and a short list of core gameplay mechanics. Format the response as simple HTML with a <h3> for the title, a <p> for the description, and a <ul> with <li> items for the mechanics.";
-
             try {
-                let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
-                const payload = { contents: chatHistory };
-                const apiKey = ""; // API key is handled by the environment
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-                const response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                const response = await fetch('/api/generate-idea', {
+                    method: 'POST'
                 });
 
                 if (!response.ok) {
@@ -373,11 +364,10 @@
 
                 const result = await response.json();
 
-                if (result.candidates && result.candidates[0].content && result.candidates[0].content.parts[0]) {
-                    const text = result.candidates[0].content.parts[0].text;
-                    ideaOutput.innerHTML = text;
+                if (result.idea) {
+                    ideaOutput.innerHTML = result.idea;
                 } else {
-                    throw new Error("Invalid response structure from API.");
+                    throw new Error("Invalid response structure from server.");
                 }
 
             } catch (error) {
