@@ -29,7 +29,11 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'your-super-secret-key',
     resave: false,
     saveUninitialized: false,
-    cookie: { maxAge: 30 * 24 * 60 * 60 * 1000 }
+    rolling: true, // <-- This resets the expiration date on every request
+    cookie: {
+        maxAge: 15 * 60 * 1000, // <-- Set to 15 minutes
+        httpOnly: true // Good security practice
+    }
 }));
 
 // --- Create Tables ---
@@ -46,6 +50,7 @@ const createTables = async () => {
     }
 };
 createTables();
+
 
 // --- Middleware ---
 app.use(bodyParser.json());
@@ -100,7 +105,6 @@ app.get('/api/profile', (req, res) => {
     res.json({ user: req.session.user });
 });
 
-// --- NEW: Gemini API Endpoint ---
 app.post('/api/generate-idea', async (req, res) => {
     const prompt = "Generate a creative concept for a new retro-style arcade game. Provide a catchy title, a one-sentence description, and a short list of core gameplay mechanics. Format the response as simple HTML with a <h3> for the title, a <p> for the description, and a <ul> with <li> items for the mechanics.";
     try {
@@ -135,3 +139,4 @@ app.post('/api/generate-idea', async (req, res) => {
 app.use(express.static(path.join(__dirname)));
 
 app.listen(port, () => console.log(`Arcade backend listening on port ${port}`));
+// JavaScript source code
