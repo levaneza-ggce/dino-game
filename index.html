@@ -46,13 +46,13 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .game-selection {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
             width: 90%;
-            max-width: 900px;
+            max-width: 800px;
         }
         .game-link {
-            font-size: 18px;
+            font-size: 20px;
             color: #fff;
             background-color: #e74c3c;
             padding: 10px;
@@ -66,6 +66,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            flex-direction: column;
         }
         .game-link:hover {
             background-color: #ff5e4d;
@@ -76,83 +77,28 @@
             transform: translateY(3px);
             animation: none;
         }
-        .top-right-nav {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .nav-btn {
-            font-size: 16px;
-            color: #fff;
-            padding: 10px 20px;
-            text-decoration: none;
-            border-radius: 5px;
-            border: 2px solid;
-            box-shadow: 0 3px 0;
-            transition: all 0.1s ease-in-out;
-            cursor: pointer;
-        }
-        .nav-btn:active {
-            box-shadow: 0 1px 0;
-            transform: translateY(2px);
-        }
-        .welcome-msg {
-            font-size: 14px;
-            color: #00ffff;
-        }
-        .profile-btn {
-            background-color: #f1c40f;
-            border-color: #f39c12;
-            box-shadow: 0 3px 0 #f39c12;
-        }
-        .profile-btn:hover {
-            background-color: #f39c12;
-        }
-        .register-btn {
-            background-color: #3498db;
-            border-color: #2980b9;
-            box-shadow: 0 3px 0 #2980b9;
-        }
-        .register-btn:hover {
-            background-color: #4aa3df;
-        }
-        .login-btn {
-            background-color: #2ecc71;
-            border-color: #27ae60;
-            box-shadow: 0 3px 0 #27ae60;
-        }
-        .login-btn:hover {
-            background-color: #3fe382;
-        }
-        .logout-btn {
-            background-color: #e74c3c;
-            border-color: #c0392b;
-            box-shadow: 0 3px 0 #c0392b;
-        }
-        .logout-btn:hover {
-            background-color: #ff5e4d;
-        }
-        @media (max-width: 900px) {
-            .game-selection {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-        @media (max-width: 480px) {
-            .game-selection {
-                grid-template-columns: 1fr;
-            }
-             h1 {
-                font-size: 36px;
-            }
-        }
+        .top-right-nav { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
+        .nav-btn { font-size: 16px; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; border: 2px solid; box-shadow: 0 3px 0; transition: all 0.1s ease-in-out; cursor: pointer; }
+        .nav-btn:active { box-shadow: 0 1px 0; transform: translateY(2px); }
+        .welcome-msg { font-size: 14px; color: #00ffff; }
+        .profile-btn { background-color: #f1c40f; border-color: #f39c12; box-shadow: 0 3px 0 #f39c12; }
+        .profile-btn:hover { background-color: #f39c12; }
+        .register-btn { background-color: #3498db; border-color: #2980b9; box-shadow: 0 3px 0 #2980b9; }
+        .register-btn:hover { background-color: #4aa3df; }
+        .login-btn { background-color: #2ecc71; border-color: #27ae60; box-shadow: 0 3px 0 #27ae60; }
+        .login-btn:hover { background-color: #3fe382; }
+        .logout-btn { background-color: #e74c3c; border-color: #c0392b; box-shadow: 0 3px 0 #c0392b; }
+        .logout-btn:hover { background-color: #ff5e4d; }
+        .chat-btn { background-color: #9b59b6; border-color: #8e44ad; box-shadow: 0 5px 0 #8e44ad; }
+        .chat-btn:hover { background-color: #af7ac5; }
+        .chat-btn:active { box-shadow: 0 2px 0 #8e44ad; }
+        @media (max-width: 768px) { .game-selection { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 36px; } .nav-btn { font-size: 14px; padding: 8px 15px; } }
+        @media (max-width: 480px) { .game-selection { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
     <div class="top-right-nav" id="nav-container">
-        <!-- This will be populated by JavaScript -->
+        <!-- Populated by JavaScript -->
     </div>
 
     <h1>ARCADE</h1>
@@ -165,34 +111,25 @@
         <a href="snake.html" class="game-link">Snake</a>
         <a href="vector.html" class="game-link">Vector Fury</a>
         <a href="pong.html" class="game-link">Pong</a>
+        <a href="chat.html" class="game-link chat-btn">Chat Room</a>
     </div>
 
     <script>
         const navContainer = document.getElementById('nav-container');
-
         async function checkLoginStatus() {
             try {
                 const response = await fetch(window.location.origin + '/api/session-status');
                 const data = await response.json();
-
                 if (data.loggedIn) {
-                    navContainer.innerHTML = `
-                        <span class="welcome-msg">Welcome, ${data.user.name.split(' ')[0]}!</span>
-                        <a href="profile.html" class="nav-btn profile-btn">Profile</a>
-                        <button id="logout-btn" class="nav-btn logout-btn">Logout</button>
-                    `;
+                    navContainer.innerHTML = `<span class="welcome-msg">Welcome, ${data.user.name.split(' ')[0]}!</span><a href="profile.html" class="nav-btn profile-btn">Profile</a><button id="logout-btn" class="nav-btn logout-btn">Logout</button>`;
                     document.getElementById('logout-btn').addEventListener('click', logout);
                 } else {
-                    navContainer.innerHTML = `
-                        <a href="login.html" class="nav-btn login-btn">Login</a>
-                        <a href="registration.html" class="nav-btn register-btn">Register</a>
-                    `;
+                    navContainer.innerHTML = `<a href="login.html" class="nav-btn login-btn">Login</a><a href="registration.html" class="nav-btn register-btn">Register</a>`;
                 }
             } catch (error) {
                 console.error('Error checking session status:', error);
             }
         }
-
         async function logout() {
             try {
                 await fetch(window.location.origin + '/logout');
@@ -201,7 +138,6 @@
                 console.error('Error during logout:', error);
             }
         }
-
         document.addEventListener('DOMContentLoaded', checkLoginStatus);
     </script>
 </body>
