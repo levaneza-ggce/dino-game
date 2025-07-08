@@ -19,7 +19,6 @@
             text-align: center;
             position: relative;
         }
-
         .form-container {
             background-color: #2c3e50;
             padding: 40px;
@@ -29,24 +28,20 @@
             width: 90%;
             max-width: 400px;
         }
-
         h1 {
             font-size: 28px;
             margin-bottom: 30px;
             color: #fff;
         }
-
         .input-group {
             margin-bottom: 20px;
             text-align: left;
         }
-
         label {
             display: block;
             margin-bottom: 8px;
             font-size: 14px;
         }
-
         input {
             width: 100%;
             padding: 12px;
@@ -58,11 +53,10 @@
             font-size: 14px;
             box-sizing: border-box;
         }
-
         .login-btn {
             width: 100%;
             padding: 15px;
-            background-color: #2ecc71; /* Green button */
+            background-color: #2ecc71;
             border: 3px solid #27ae60;
             border-radius: 8px;
             color: #fff;
@@ -72,16 +66,13 @@
             transition: background-color 0.2s;
             box-shadow: 0 5px 0 #27ae60;
         }
-
-            .login-btn:hover {
-                background-color: #3fe382;
-            }
-
-            .login-btn:active {
-                box-shadow: 0 2px 0 #27ae60;
-                transform: translateY(3px);
-            }
-
+        .login-btn:hover {
+            background-color: #3fe382;
+        }
+        .login-btn:active {
+            box-shadow: 0 2px 0 #27ae60;
+            transform: translateY(3px);
+        }
         .back-button {
             position: absolute;
             top: 20px;
@@ -90,22 +81,15 @@
             text-decoration: none;
             font-size: 16px;
             z-index: 100;
-            background: rgba(0, 255, 255, 0.1);
-            padding: 8px 12px;
-            border-radius: 5px;
-            border: 2px solid #00ffff;
-            transition: background-color 0.2s;
         }
-
-            .back-button:hover {
-                background-color: rgba(0, 255, 255, 0.2);
-            }
-
         #message {
             margin-top: 20px;
             font-size: 14px;
             height: 20px;
-            color: #e74c3c; /* Red for errors */
+            color: #e74c3c;
+        }
+        #captcha-group {
+            display: none; /* Hidden by default */
         }
     </style>
 </head>
@@ -122,6 +106,11 @@
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
+            <!-- NEW: CAPTCHA Section -->
+            <div class="input-group" id="captcha-group">
+                <label for="captcha" id="captcha-label">CAPTCHA</label>
+                <input type="text" id="captcha" name="captcha">
+            </div>
             <button type="submit" class="login-btn">Login</button>
         </form>
         <div id="message"></div>
@@ -130,6 +119,21 @@
     <script>
         const loginForm = document.getElementById('login-form');
         const messageElement = document.getElementById('message');
+        const captchaGroup = document.getElementById('captcha-group');
+        const captchaLabel = document.getElementById('captcha-label');
+        const captchaInput = document.getElementById('captcha');
+
+        async function showCaptcha() {
+            captchaGroup.style.display = 'block';
+            captchaInput.required = true;
+            try {
+                const response = await fetch(window.location.origin + '/api/captcha');
+                const data = await response.json();
+                captchaLabel.textContent = data.question;
+            } catch (error) {
+                captchaLabel.textContent = 'Error loading CAPTCHA.';
+            }
+        }
 
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -137,6 +141,7 @@
             const formData = {
                 email: loginForm.email.value,
                 password: loginForm.password.value,
+                captcha: captchaInput.value || null
             };
 
             messageElement.textContent = 'Logging in...';
@@ -145,9 +150,7 @@
             try {
                 const response = await fetch(window.location.origin + '/login', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData),
                 });
 
@@ -155,20 +158,20 @@
 
                 if (response.ok) {
                     messageElement.textContent = result.message;
-                    messageElement.style.color = '#2ecc71'; // Green
-
+                    messageElement.style.color = '#2ecc71';
                     setTimeout(() => {
-                        // **FIX: Use the full URL for the redirect**
                         window.location.href = window.location.origin;
-                    }, 1000); // Wait 1 second to show the success message
-
+                    }, 1000);
                 } else {
                     messageElement.textContent = result.message;
-                    messageElement.style.color = '#e74c3c'; // Red
+                    messageElement.style.color = '#e74c3c';
+                    // If server says to show CAPTCHA, show it
+                    if (result.showCaptcha) {
+                        showCaptcha();
+                    }
                 }
 
             } catch (error) {
-                console.error('Error:', error);
                 messageElement.textContent = 'An error occurred. Please try again.';
                 messageElement.style.color = '#e74c3c';
             }
