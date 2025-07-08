@@ -26,14 +26,18 @@
     const storage = multer.diskStorage({
         destination: (req, file, cb) => cb(null, uploadDir + '/'),
         filename: (req, file, cb) => {
-            if (!req.session.user) {
+            if (!req.session || !req.session.user) {
                 return cb(new Error('User not authenticated for upload'));
             }
             const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
             cb(null, req.session.user.id + '-' + uniqueSuffix + path.extname(file.originalname));
         }
     });
-    const upload = multer({ storage: storage });
+    const upload = multer({ 
+        storage: storage,
+        limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+    });
+
 
     // --- Database Connection ---
     const pool = new Pool({
