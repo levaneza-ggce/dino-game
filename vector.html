@@ -48,7 +48,7 @@
             z-index: 100;
         }
         #touch-controls {
-            display: flex;
+            display: none; /* Hidden by default, shown on touch devices */
             justify-content: space-between;
             width: 100%;
             padding: 10px;
@@ -72,6 +72,12 @@
             height: 80px;
             font-size: 18px;
         }
+        /* Show controls on touch devices */
+        @media (pointer: coarse) {
+            #touch-controls {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -90,43 +96,227 @@
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+
+        // --- Game Objects ---
         let player, bullets, asteroids, score, lives, isGameOver, keys;
-        const FRICTION = 0.99, SHIP_SIZE = 20, TURN_SPEED = 0.05, THRUST_POWER = 0.1, BULLET_SPEED = 5, ASTEROID_NUM = 3, ASTEROID_SPEED = 1, ASTEROID_SIZE = 50;
-        
-        class Ship { /* ... Same as before ... */ }
-        class Bullet { /* ... Same as before ... */ }
-        class Asteroid { /* ... Same as before ... */ }
-        
-        function init() { /* ... Same as before ... */ }
-        function handleCollisions() { /* ... Same as before ... */ }
-        function drawUI() { /* ... Same as before ... */ }
+        const FRICTION = 0.99;
+        const SHIP_SIZE = 20;
+        const TURN_SPEED = 0.05;
+        const THRUST_POWER = 0.1;
+        const BULLET_SPEED = 5;
+        const ASTEROID_NUM = 3;
+        const ASTEROID_SPEED = 1;
+        const ASTEROID_SIZE = 50;
+
+        class Ship {
+            constructor() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height / 2;
+                this.radius = SHIP_SIZE / 2;
+                this.angle = Math.PI / 2; // Pointing up
+                this.vel = { x: 0, y: 0 };
+                this.canShoot = true;
+            }
+            draw() {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo( // Nose
+                    this.x + this.radius * Math.cos(this.angle),
+                    this.y - this.radius * Math.sin(this.angle)
+                );
+                ctx.lineTo( // Rear left
+                    this.x - this.radius * (Math.cos(this.angle) + Math.sin(this.angle)),
+                    this.y + this.radius * (Math.sin(this.angle) - Math.cos(this.angle))
+                );
+                ctx.lineTo( // Rear right
+                    this.x - this.radius * (Math.cos(this.angle) - Math.sin(this.angle)),
+                    this.y + this.radius * (Math.sin(this.angle) + Math.cos(this.angle))
+                );
+                ctx.closePath();
+                ctx.stroke();
+            }
+            update() {
+                // Rotate based on keyboard or touch input
+                if (keys['ArrowLeft'] || keys['touch-left']) this.angle += TURN_SPEED;
+                if (keys['ArrowRight'] || keys['touch-right']) this.angle -= TURN_SPEED;
+                // Thrust based on keyboard or touch input
+                if (keys['ArrowUp'] || keys['touch-thrust']) {
+                    this.vel.x += THRUST_POWER * Math.cos(this.angle);
+                    this.vel.y -= THRUST_POWER * Math.sin(this.angle);
+                }
+                // Apply friction
+                this.vel.x *= FRICTION;
+                this.vel.y *= FRICTION;
+                // Move
+                this.x += this.vel.x;
+                this.y += this.vel.y;
+                // Screen wrap
+                if (this.x < -this.radius) this.x = canvas.width + this.radius;
+                if (this.x > canvas.width + this.radius) this.x = -this.radius;
+                if (this.y < -this.radius) this.y = canvas.height + this.radius;
+                if (this.y > canvas.height + this.radius) this.y = -this.radius;
+            }
+            shoot() {
+                if (this.canShoot) {
+                    bullets.push(new Bullet(
+                        this.x + this.radius * Math.cos(this.angle),
+                        this.y - this.radius * Math.sin(this.angle),
+                        this.angle
+                    ));
+                    this.canShoot = false;
+                    setTimeout(() => this.canShoot = true, 250); // Cooldown
+                }
+            }
+        }
+
+        class Bullet {
+            constructor(x, y, angle) {
+                this.x = x;
+                this.y = y;
+                this.vel = {
+                    x: BULLET_SPEED * Math.cos(angle),
+                    y: -BULLET_SPEED * Math.sin(angle)
+                };
+                this.radius = 3;
+                this.life = 80; // Frames to live
+            }
+            draw() {
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            update() {
+                this.x += this.vel.x;
+                this.y += this.vel.y;
+                this.life--;
+            }
+        }
+
+        class Asteroid {
+            constructor(x, y, radius) {
+                this.x = x || (Math.random() < 0.5 ? 0 - ASTEROID_SIZE : canvas.width + ASTEROID_SIZE);
+                this.y = y || (Math.random() < 0.5 ? 0 - ASTEROID_SIZE : canvas.height + ASTEROID_SIZE);
+                this.radius = radius || ASTEROID_SIZE;
+                this.vel = {
+                    x: (Math.random() - 0.5) * ASTEROID_SPEED * (ASTEROID_SIZE / this.radius),
+                    y: (Math.random() - 0.5) * ASTEROID_SPEED * (ASTEROID_SIZE / this.radius)
+                };
+            }
+            draw() {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            update() {
+                this.x += this.vel.x;
+                this.y += this.vel.y;
+                // Screen wrap
+                if (this.x < -this.radius) this.x = canvas.width + this.radius;
+                if (this.x > canvas.width + this.radius) this.x = -this.radius;
+                if (this.y < -this.radius) this.y = canvas.height + this.radius;
+                if (this.y > canvas.height + this.radius) this.y = -this.radius;
+            }
+        }
+
+        function init() {
+            player = new Ship();
+            bullets = [];
+            asteroids = [];
+            for (let i = 0; i < ASTEROID_NUM; i++) {
+                asteroids.push(new Asteroid());
+            }
+            score = 0;
+            lives = 3;
+            isGameOver = false;
+            keys = {};
+            gameLoop();
+        }
+
+        function handleCollisions() {
+            // Asteroids and Bullets
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                for (let j = bullets.length - 1; j >= 0; j--) {
+                    const dist = Math.hypot(asteroids[i].x - bullets[j].x, asteroids[i].y - bullets[j].y);
+                    if (dist < asteroids[i].radius) {
+                        if (asteroids[i].radius > ASTEROID_SIZE / 4) {
+                            asteroids.push(new Asteroid(asteroids[i].x, asteroids[i].y, asteroids[i].radius / 2));
+                            asteroids.push(new Asteroid(asteroids[i].x, asteroids[i].y, asteroids[i].radius / 2));
+                            score += 50;
+                        } else {
+                            score += 100;
+                        }
+                        asteroids.splice(i, 1);
+                        bullets.splice(j, 1);
+                        break;
+                    }
+                }
+            }
+            // Player and Asteroids
+            for (let i = asteroids.length - 1; i >= 0; i--) {
+                const dist = Math.hypot(player.x - asteroids[i].x, player.y - asteroids[i].y);
+                if (dist < player.radius + asteroids[i].radius) {
+                    lives--;
+                    if (lives <= 0) {
+                        isGameOver = true;
+                    } else {
+                        asteroids.splice(i, 1);
+                        player = new Ship(); // Respawn
+                    }
+                }
+            }
+        }
+
+        function drawUI() {
+            ctx.fillStyle = '#fff';
+            ctx.font = "20px 'Press Start 2P'";
+            ctx.textAlign = 'left';
+            ctx.fillText(`Score: ${score}`, 20, 40);
+            ctx.textAlign = 'right';
+            ctx.fillText(`Lives: ${lives}`, canvas.width - 20, 40);
+
+            if (isGameOver) {
+                ctx.textAlign = 'center';
+                ctx.font = "48px 'Press Start 2P'";
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                ctx.font = "20px 'Press Start 2P'";
+                ctx.fillText('Press Enter or Fire to Restart', canvas.width / 2, canvas.height / 2 + 50);
+            }
+        }
 
         function gameLoop() {
-            // Touch controls update
-            if (keys['touch-left']) player.angle += TURN_SPEED;
-            if (keys['touch-right']) player.angle -= TURN_SPEED;
-            if (keys['touch-thrust']) {
-                player.vel.x += THRUST_POWER * Math.cos(player.angle);
-                player.vel.y -= THRUST_POWER * Math.sin(player.angle);
-            }
-            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             if (!isGameOver) {
                 player.update();
-                bullets.forEach(b => b.update());
+                bullets.forEach((b, i) => {
+                    b.update();
+                    if (b.life <= 0) bullets.splice(i, 1);
+                });
                 asteroids.forEach(a => a.update());
                 handleCollisions();
             }
+
             player.draw();
             bullets.forEach(b => b.draw());
             asteroids.forEach(a => a.draw());
             drawUI();
+            
             requestAnimationFrame(gameLoop);
         }
 
         // --- Event Listeners ---
-        window.addEventListener('keydown', (e) => { keys[e.code] = true; if (e.code === 'Space' && !isGameOver) player.shoot(); if (e.code === 'Enter' && isGameOver) init(); });
-        window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (e.code === 'Space' && !isGameOver) player.shoot();
+            if (e.code === 'Enter' && isGameOver) init();
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
 
         // --- Touch Controls ---
         const leftBtn = document.getElementById('left-btn');
@@ -134,13 +324,17 @@
         const thrustBtn = document.getElementById('thrust-btn');
         const fireBtn = document.getElementById('fire-btn');
 
-        leftBtn.addEventListener('touchstart', () => keys['touch-left'] = true);
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys['touch-left'] = true; }, { passive: false });
         leftBtn.addEventListener('touchend', () => keys['touch-left'] = false);
-        rightBtn.addEventListener('touchstart', () => keys['touch-right'] = true);
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys['touch-right'] = true; }, { passive: false });
         rightBtn.addEventListener('touchend', () => keys['touch-right'] = false);
-        thrustBtn.addEventListener('touchstart', () => keys['touch-thrust'] = true);
+        thrustBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys['touch-thrust'] = true; }, { passive: false });
         thrustBtn.addEventListener('touchend', () => keys['touch-thrust'] = false);
-        fireBtn.addEventListener('touchstart', () => { if (!isGameOver) player.shoot(); });
+        fireBtn.addEventListener('touchstart', (e) => { 
+            e.preventDefault(); 
+            if (!isGameOver) player.shoot(); 
+            if (isGameOver) init();
+        }, { passive: false });
 
         init();
     </script>
