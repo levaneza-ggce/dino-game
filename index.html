@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Levan's Arcade</title>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
@@ -19,6 +19,8 @@
             overflow: hidden;
             text-align: center;
             position: relative;
+            padding: 20px;
+            box-sizing: border-box;
         }
         body::before {
             content: '';
@@ -37,7 +39,7 @@
         @keyframes background-pan { from { background-position: 0 0; } to { background-position: 40px 80px; } }
         h1 {
             font-size: 48px;
-            margin-bottom: 50px;
+            margin-bottom: 40px;
             color: #fff;
             text-shadow: 0 0 5px #fff, 0 0 10px #fff, 0 0 20px #ff00ff, 0 0 30px #ff00ff, 0 0 40px #ff00ff, 0 0 55px #ff00ff, 0 0 75px #ff00ff;
             animation: glow 1.5s ease-in-out infinite alternate;
@@ -46,13 +48,13 @@
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .game-selection {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 25px;
-            width: 90%;
-            max-width: 800px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
         }
         .game-link {
-            font-size: 20px;
+            font-size: 16px;
             color: #fff;
             background-color: #e74c3c;
             padding: 10px;
@@ -78,9 +80,9 @@
             animation: none;
         }
         .top-right-nav { position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 15px; }
-        .nav-btn { font-size: 16px; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 5px; border: 2px solid; box-shadow: 0 3px 0; transition: all 0.1s ease-in-out; cursor: pointer; }
+        .nav-btn { font-size: 14px; color: #fff; padding: 8px 15px; text-decoration: none; border-radius: 5px; border: 2px solid; box-shadow: 0 3px 0; transition: all 0.1s ease-in-out; cursor: pointer; }
         .nav-btn:active { box-shadow: 0 1px 0; transform: translateY(2px); }
-        .welcome-msg { font-size: 14px; color: #00ffff; }
+        .welcome-msg { font-size: 14px; color: #00ffff; display: none; } /* Hide by default on small screens */
         .profile-btn { background-color: #f1c40f; border-color: #f39c12; box-shadow: 0 3px 0 #f39c12; }
         .profile-btn:hover { background-color: #f39c12; }
         .register-btn { background-color: #3498db; border-color: #2980b9; box-shadow: 0 3px 0 #2980b9; }
@@ -92,8 +94,17 @@
         .chat-btn { background-color: #9b59b6; border-color: #8e44ad; box-shadow: 0 5px 0 #8e44ad; }
         .chat-btn:hover { background-color: #af7ac5; }
         .chat-btn:active { box-shadow: 0 2px 0 #8e44ad; }
-        @media (max-width: 768px) { .game-selection { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 36px; } .nav-btn { font-size: 14px; padding: 8px 15px; } }
-        @media (max-width: 480px) { .game-selection { grid-template-columns: 1fr; } }
+        
+        @media (min-width: 768px) {
+            .welcome-msg { display: inline; }
+        }
+        @media (max-width: 900px) {
+            .game-selection { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 600px) {
+            .game-selection { grid-template-columns: repeat(2, 1fr); }
+            h1 { font-size: 36px; }
+        }
     </style>
 </head>
 <body>
